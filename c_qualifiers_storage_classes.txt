@@ -1,0 +1,142 @@
+=========================================
+Qualifiers & Storage Class (C)
+=========================================
+
+VOLATILE
+--------
+- Tells compiler: "value can change unexpectedly → don’t optimize"
+- Prevents caching in register / reordering of accesses
+- Common in embedded:
+  * Memory-mapped I/O registers
+  * Flags modified in ISR
+  * Variables shared between threads/cores
+
+Example:
+--------
+volatile uint32_t *STATUS = (uint32_t*)0x40001000;
+while((*STATUS & 0x01) == 0);   // keeps reloading register
+
+Without volatile → compiler may optimize loop away (bug!)
+
+Mixing with const:
+------------------
+const volatile uint32_t *REG;
+- SW cannot modify
+- HW can still change value
+- Typical for read-only status registers
+
+Traps:
+------
+- volatile ≠ atomic → races still possible
+- volatile doesn’t enforce memory ordering → need barriers
+- volatile access can still be reordered vs other non-volatile vars
+
+CONST
+-----
+- Declares object read-only (compiler enforces)
+- May be placed in flash/ROM (depends on toolchain)
+- Good for lookup tables, calibration data, constant strings
+
+Pointer forms:
+--------------
+const int *p       → pointer to const int (can’t modify *p)
+int * const p      → const pointer to int (address fixed)
+const int * const p → const pointer to const int
+
+Embedded usage:
+---------------
+- Ensure function params not modified
+- Place LUTs/configs in flash
+- Prevent accidental writes
+
+Traps:
+------
+- const var can still be modified by casting → breaks const-correctness
+- const ≠ compile-time constant (use #define or enum for true constants)
+
+STATIC
+------
+Has two distinct uses:
+
+1) Inside function:
+   - Lifetime = entire program
+   - Scope = local to that function
+   Example:
+   void foo() {
+       static int counter = 0;
+       counter++;
+       printf("%d\n", counter);
+   }
+
+2) File scope (global):
+   - Restricts visibility to current .c file (internal linkage)
+   static int my_var = 5;  // not visible outside file
+
+3) Static functions:
+   - Restrict function visibility to file
+   static void helper() { ... }
+
+Embedded usage:
+---------------
+- Encapsulation in drivers (hide internals)
+- Persistent counters in ISRs
+- Prevents symbol collisions
+
+INLINE
+------
+- Suggests compiler: "replace call with body"
+- Removes call/return overhead
+- Safer than macros (type-checked, avoids double evaluation)
+
+Macro vs Inline:
+----------------
+#define SQR(x)  ((x)*(x))     // macro
+inline int sqr(int x){ return x*x; }
+
+int b = SQR(a++); → expands to (a++ * a++), UB (double increment)
+int c = sqr(a++); → evaluates once, safe
+
+Static inline:
+--------------
+- Used in headers to avoid multiple-definition errors
+- Each .c file gets its own private inline copy
+Example:
+static inline int max(int a,int b){ return (a>b)?a:b; }
+
+Extern inline:
+--------------
+- Allows inlining but provides one global definition
+- Used when function may need a non-inlined copy too
+
+Traps:
+------
+- Inline is only a hint, compiler may ignore
+- Large inline funcs = code bloat
+- Inline in headers → use static inline
+- Inline + recursion → possible but rarely inlined
+- Inline + extern → must provide one non-inlined definition
+
+MEMORY & LINKAGE KEYWORDS
+-------------------------
+auto     → default, local stack storage
+register → hint to keep in CPU register (mostly ignored)
+extern   → declares var defined elsewhere
+static   → restricts visibility OR extends lifetime (context-dependent)
+
+ADVANCED COMBOS
+---------------
+- static const int x = 5;    // file-local, read-only
+- static volatile int flag;  // persistent flag, no optimization
+- const volatile int *REG;   // read-only HW register, may change anytime
+- static inline int f(){}    // TU-local, inlineable
+
+INTERVIEW CHECKLIST
+-------------------
+- volatile → when, why, and why not (I/O regs, ISR flags, not for atomicity)
+- const    → usage with pointers, LUTs, configs
+- static   → persistence across calls, file-local hiding
+- inline   → safer than macros, static inline in headers
+- Macro pitfalls: SQR(a++) example
+- const + volatile combo for HW regs
+- static inline vs extern inline
+- storage classes recap: auto, register, extern, static
