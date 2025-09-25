@@ -1,0 +1,111 @@
+=========================================
+Pointers, Arrays, Function Pointers (C)
+=========================================
+
+BASICS
+------
+- Pointer = variable storing an address
+- *p → dereference (value at address)
+- &x → address of x
+- Uninitialized pointer = UB (wild/dangling)
+
+ARRAYS & DECAY
+--------------
+- arr[i] == *(arr + i) == *(i + arr) == i[arr]
+- 2D arrays: arr[i][j] == *(*(arr + i) + j)
+- Array name usually decays to pointer → first element
+- Exceptions: sizeof, & operators (no decay)
+
+sizeof NOTES
+------------
+- sizeof(arr)  = total array size (N * sizeof(type))
+- sizeof(p)    = size of pointer itself (4 on 32-bit, 8 on 64-bit)
+- sizeof(*p)   = size of object pointed to
+- sizeof(&arr) = size of pointer to array (int (*)[N])
+
+ARRAY NAME IS NOT MODIFIABLE
+----------------------------
+int arr[3]; int *p;
+p = arr;   // OK (pointer assigned)
+arr = p;   // ERROR (array name fixed at compile time)
+
+&arr vs arr
+-----------
+- arr  → pointer to 1st element (type: int *)
+- &arr → address of whole array (type: int (*)[N])
+- Values same when printed, types differ
+
+CONST & POINTERS
+----------------
+const int *p       → pointer to const int (can’t modify *p)
+int * const p      → const pointer to int (can’t change address)
+const int * const p → const pointer to const int
+
+POINTER ARITHMETIC
+------------------
+- p + n → moves by n * sizeof(type) bytes
+- p1 - p2 → difference in elements, not bytes
+- Only valid within same array (or 1 past end)
+
+Tricks:
+-------
+int arr[5] = {10,20,30,40,50};
+int *p = arr;
+*(p+2) == *(2+p) == arr[2] == 2[arr]   // all 30
+
+int *q = &arr[4];
+printf("%td\n", q - p);   // 4 (elements apart, not bytes)
+
+OPERATOR PRECEDENCE TRAPS
+-------------------------
+int arr[3] = {1,2,3}; int *p = arr;
+
+*p++   → *(p++): use *p, then move p (prints 1, p→arr[1])
+(*p)++ → increment value pointed (arr[1] = 3)
+*++p   → move p first, then deref (prints arr[2] = 3)
+++*p   → increment *p, value at arr[0] becomes 2
+
+POINTERS TO POINTERS
+--------------------
+int x=5, *p=&x, **pp=&p;
+**pp = 10;   // modifies x
+
+FUNCTION POINTERS
+-----------------
+int add(int a,int b){return a+b;}
+int (*fp)(int,int) = add;
+fp(2,3); → 5
+
+Jump table:
+void f1(), f2();
+void (*ftab[2])() = {f1,f2};
+ftab[1](); // calls f2
+
+Signature mismatch = UB
+void f(int x);
+void (*fp)(void) = f; // WRONG
+
+ARRAYS OF POINTERS vs POINTER TO ARRAY
+--------------------------------------
+int *a[3];     // array of 3 int pointers
+int (*p)[3];   // pointer to array of 3 ints
+p+1 moves by sizeof(int[3]) bytes
+
+2D ARRAYS
+---------
+int a[2][3] = {{1,2,3},{4,5,6}};
+int (*p)[3] = a;
+a[1][2] == *(*(a + 1) + 2) == 6
+
+QUICK RECALL (INTERVIEW CHECKLIST)
+----------------------------------
+- Array decays to pointer (except sizeof, &)
+- arr vs &arr → same value, diff type
+- sizeof(arr), sizeof(p), sizeof(*p)
+- Const usage with pointers
+- Pointers to pointers
+- Function pointers & jump tables
+- Array of pointers vs pointer to array
+- Pointer arithmetic (element-based)
+- Operator precedence: *p++, (*p)++, *++p, ++*p
+- UB: uninitialized, dangling, mismatched signatures, out-of-bounds
