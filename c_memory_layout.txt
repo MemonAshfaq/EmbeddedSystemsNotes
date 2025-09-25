@@ -1,0 +1,170 @@
+=========================================
+Memory Layout in C (Embedded Focus)
+=========================================
+
+TYPICAL MEMORY SECTIONS
+-----------------------
+1. .text
+   - Code / instructions
+   - Usually stored in Flash/ROM in embedded systems
+   - Read-only
+
+2. .rodata (read-only data)
+   - Constants, string literals, const globals
+   - Often merged with .text in embedded targets
+
+3. .data
+   - Global/static variables with INITIALIZED values
+   - Stored in Flash (for init value) but copied to RAM at startup
+   Example:
+     int x = 5;   // in .data
+
+4. .bss
+   - Global/static variables with UNINITIALIZED or zero values
+   - Stored in RAM, initialized to 0 at startup
+   Example:
+     int y;       // in .bss (zero-initialized)
+
+5. Heap
+   - Dynamic allocation (malloc/free)
+   - Grows upward (implementation-specific)
+   - Rarely used in embedded (fragmentation, no OS)
+
+6. Stack
+   - Function calls, local variables
+   - Grows downward (implementation-specific)
+   - One per thread in RTOS, single in bare metal
+   - Stack overflow → corrupts memory, hard to debug
+
+-----------------------------------------
+STARTUP SEQUENCE (EMBEDDED)
+-----------------------------------------
+- After reset, startup code runs before main():
+  1. Copy .data init values from Flash → RAM
+  2. Zero-initialize .bss
+  3. Set up stack pointer
+  4. Call main()
+
+- Handled via:
+  * Startup assembly file (crt0, reset_handler)
+  * Linker script defines memory regions
+
+-----------------------------------------
+LINKER SCRIPT BASICS (Embedded)
+-----------------------------------------
+Defines how sections map to physical memory.
+
+Example (simplified):
+---------------------
+SECTIONS {
+  .text : { *(.text*) } > FLASH
+  .rodata : { *(.rodata*) } > FLASH
+  .data : {
+    *(.data*)
+  } > RAM AT > FLASH
+  .bss : { *(.bss*) } > RAM
+  .stack (COPY) : { ... } > RAM
+}
+
+Notes:
+- "AT > FLASH" = initial values stored in Flash, copied to RAM
+- Stack often placed at top of RAM
+- Heap placed after .bss
+
+-----------------------------------------
+STACK vs HEAP (Comparison)
+-----------------------------------------
+STACK
+- Fast, automatic allocation
+- Lifetime = function call
+- Limited size, overflow corrupts memory
+- Predictable, good for embedded
+- Example:
+  void f() { int local = 5; }
+
+HEAP
+- Dynamic (malloc/free)
+- Lifetime = until freed
+- Slower, fragmented
+- Dangerous if not controlled
+- Example:
+  int *p = malloc(100);
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+1. Where do global/static variables live?
+   - Initialized → .data
+   - Uninitialized → .bss
+   - const → .rodata (may be merged with .text)
+   - local (non-static) → stack
+   - dynamic → heap
+
+2. Difference between .data and .bss
+   - .data = initialized globals/statics
+   - .bss = uninitialized globals/statics (zeroed at startup)
+
+3. Why is .bss size small in binary?
+   - Stored as "size only" (not actual zeros)
+   - Runtime startup fills with zeros
+
+4. Can stack and heap collide?
+   - Yes, if both grow toward each other
+   - Causes corruption, common embedded bug
+
+5. String literals
+   - Stored in .rodata
+   Example: char *s = "hello"; // points to read-only
+
+6. const vs #define
+   - const may still take RAM unless placed in flash
+   - #define replaced at compile time (no storage)
+
+7. Volatile variable placement
+   - volatile has no special memory section
+   - Just tells compiler not to optimize
+
+8. Static inside function
+   - Stored in .data or .bss (not on stack)
+   Example:
+     void f(){ static int x = 0; } // persists across calls
+
+9. Multiple threads (RTOS)
+   - Each thread gets its own stack
+   - Heap usually shared → must protect with mutex
+
+10. Embedded specific:
+   - Linker script decides placement (Flash vs RAM)
+   - ISRs use stack too (must size carefully)
+   - Bootloaders often relocate .data/.bss before jump to app
+
+-----------------------------------------
+VISUAL LAYOUT (Typical MCU)
+-----------------------------------------
+[ Flash ]
+  .text      → program code
+  .rodata    → constants
+  .data_init → init values for .data
+
+[ RAM ]
+  .data      → globals/statics with init values
+  .bss       → globals/statics uninitialized (zeroed)
+  heap       → grows upward
+  stack      → grows downward from top of RAM
+
+If heap and stack collide → crash
+
+-----------------------------------------
+QUICK RECALL (Interview Checklist)
+-----------------------------------------
+- .text  → code, flash, read-only
+- .rodata → const data, flash
+- .data  → init globals/statics, RAM (copied from flash)
+- .bss   → zeroed globals/statics, RAM
+- stack  → locals, function frames, grows down
+- heap   → malloc/free, grows up, fragmentation
+- Embedded startup = init .data/.bss + SP setup
+- Linker script maps sections → flash/RAM
+- Static locals go in .data/.bss, not stack
+- String literals in .rodata
+- Stack overflow & heap collision = common embedded bugs
