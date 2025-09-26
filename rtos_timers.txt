@@ -36,25 +36,63 @@ Tickless RTOS
 Use case:
 - IoT sensor node → sleeps for seconds, wakes for short task.
 
------------------------------------------------------------
-Software Timers
------------------------------------------------------------
-- RTOS feature to run callback functions after a timeout.
-- Managed by a special "timer service task".
-- Two types:
-   * One-shot → runs once after delay.
-   * Periodic → runs repeatedly at fixed interval.
+===========================================================
+Software Timers vs Hardware Timers
+===========================================================
+
+Hardware Timer:
+---------------
+- Peripheral built into MCU (Timer, SysTick, RTC).
+- Runs independently of CPU.
+- Generates interrupts at precise intervals.
+- Very accurate and low jitter.
+- Limited in number (MCUs have few hardware timers).
 
 Use cases:
-- LED blinking task every 500ms.
-- Network retry timeout (1s after failure).
-- Motor safety timeout (stop motor if no command received).
+- Generating PWM signals.
+- Measuring input capture (frequency, pulse width).
+- Creating very precise periodic interrupts.
+- Watchdog timers.
 
-Pitfalls:
-- Timer callbacks run in timer task context, not ISR.
-- Do NOT block or do heavy work inside callback.
-- If callback is long, it delays other timers.
+-----------------------------------------------------------
+Software Timer:
+---------------
+- Provided by RTOS, built on top of hardware tick.
+- Implemented in software by the RTOS kernel.
+- Managed by "timer service task".
+- Resolution limited to RTOS tick rate (e.g., 1ms).
+- Less accurate than hardware timer, may have jitter if
+  higher-priority tasks delay the timer task.
+- Unlimited in number (only limited by memory).
 
+Use cases:
+- Scheduling periodic tasks (LED blink, status check).
+- Implementing timeouts (retry, watchdog-like behavior).
+- Non-critical timing where 1ms+ resolution is acceptable.
+
+-----------------------------------------------------------
+Key Differences:
+-----------------------------------------------------------
+1. Source:
+   - Hardware timer = dedicated MCU peripheral.
+   - Software timer = RTOS constructs based on tick.
+
+2. Accuracy:
+   - Hardware timer = precise, microsecond resolution.
+   - Software timer = limited by tick resolution (1ms typical).
+
+3. Priority:
+   - Hardware ISR runs immediately on interrupt.
+   - Software timer callback runs in timer task context (can be delayed).
+
+4. Availability:
+   - Hardware timers are few.
+   - Software timers are virtually unlimited.
+
+5. Best Practice:
+   - Use hardware timers for precise, low-latency events.
+   - Use software timers for general scheduling and timeouts.
+===========================================================
 -----------------------------------------------------------
 FreeRTOS Example
 -----------------------------------------------------------
