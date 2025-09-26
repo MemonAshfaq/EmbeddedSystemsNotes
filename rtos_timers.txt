@@ -1,0 +1,101 @@
+===========================================================
+RTOS Topic: TIMERS & TICK MANAGEMENT
+===========================================================
+
+System Tick
+-----------
+- RTOS scheduler relies on a periodic "tick interrupt".
+- Commonly driven by SysTick timer (on ARM Cortex-M).
+- Each tick increments kernel time and drives:
+   * Task delays (vTaskDelay, vTaskDelayUntil).
+   * Timeouts (queue/semaphore waits).
+   * Software timers.
+
+Tick Frequency:
+---------------
+- High tick rate (e.g., 1ms):
+   + Fine time resolution.
+   - More CPU overhead (more interrupts).
+- Low tick rate (e.g., 10ms):
+   + Less CPU overhead.
+   - Coarse resolution (cannot schedule finer delays).
+
+Rule of thumb:
+- Choose smallest tick period that meets timing needs
+  without wasting CPU.
+
+-----------------------------------------------------------
+Tickless RTOS
+-----------------------------------------------------------
+- Power-saving mode.
+- Instead of firing every 1ms:
+   * RTOS calculates "next wakeup event".
+   * Programs hardware timer to wake CPU just before event.
+   * CPU sleeps longer in low-power mode.
+
+Use case:
+- IoT sensor node → sleeps for seconds, wakes for short task.
+
+-----------------------------------------------------------
+Software Timers
+-----------------------------------------------------------
+- RTOS feature to run callback functions after a timeout.
+- Managed by a special "timer service task".
+- Two types:
+   * One-shot → runs once after delay.
+   * Periodic → runs repeatedly at fixed interval.
+
+Use cases:
+- LED blinking task every 500ms.
+- Network retry timeout (1s after failure).
+- Motor safety timeout (stop motor if no command received).
+
+Pitfalls:
+- Timer callbacks run in timer task context, not ISR.
+- Do NOT block or do heavy work inside callback.
+- If callback is long, it delays other timers.
+
+-----------------------------------------------------------
+FreeRTOS Example
+-----------------------------------------------------------
+
+void vOneShotCallback(TimerHandle_t xTimer) {
+    printf("One-shot fired\n");
+}
+
+void vPeriodicCallback(TimerHandle_t xTimer) {
+    printf("Periodic fired\n");
+}
+
+int main(void) {
+    TimerHandle_t xOneShot, xPeriodic;
+
+    // One-shot timer: expires once after 1000 ms
+    xOneShot = xTimerCreate("OneShot",
+                            pdMS_TO_TICKS(1000),
+                            pdFALSE,
+                            0,
+                            vOneShotCallback);
+
+    // Periodic timer: expires every 500 ms
+    xPeriodic = xTimerCreate("Periodic",
+                             pdMS_TO_TICKS(500),
+                             pdTRUE,
+                             0,
+                             vPeriodicCallback);
+
+    xTimerStart(xOneShot, 0);
+    xTimerStart(xPeriodic, 0);
+
+    vTaskStartScheduler();
+}
+
+-----------------------------------------------------------
+Key Takeaways
+-----------------------------------------------------------
+- Tick = scheduler heartbeat.
+- Balance tick rate: resolution vs CPU load.
+- Tickless mode = better power efficiency.
+- Software timers = callbacks after delay/period.
+- Always keep timer callbacks short → defer heavy work to tasks.
+===========================================================
