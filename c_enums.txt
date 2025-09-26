@@ -1,0 +1,106 @@
+=========================================
+Enums in C (Embedded Focus)
+=========================================
+
+WHAT IS AN ENUM?
+----------------
+- User-defined type consisting of named integer constants
+- Improves readability and maintainability
+- Default underlying type = int (can vary by compiler/standard)
+
+Example:
+--------
+enum Color { RED, GREEN, BLUE };
+enum Color c = RED;   // c = 0
+
+VALUES
+------
+- By default, values start from 0 and increment by 1
+- Can assign custom values
+
+Example:
+--------
+enum Week { MON=1, TUE, WED=5, THU, FRI };
+// MON=1, TUE=2, WED=5, THU=6, FRI=7
+
+-----------------------------------------
+ENUMS vs #define
+-----------------------------------------
+#define RED   0
+#define GREEN 1
+#define BLUE  2
+
+enum Color { RED, GREEN, BLUE };
+
+Differences:
+- Enums create a new type (type safety in C++)
+- Constants are grouped under one name (better readability)
+- Debuggers show enum names instead of raw integers
+- Compiler may warn on invalid values with enums
+
+-----------------------------------------
+TYPICAL EMBEDDED USE CASES
+-----------------------------------------
+1) State Machines
+-----------------
+enum State { IDLE, RUNNING, ERROR };
+enum State s = IDLE;
+
+switch(s) {
+  case IDLE:    ... break;
+  case RUNNING: ... break;
+  case ERROR:   ... break;
+}
+
+2) Flags / Modes
+----------------
+enum Mode { MODE_RX=0, MODE_TX=1, MODE_SLEEP=2 };
+device_set_mode(MODE_TX);
+
+3) Error Codes
+--------------
+enum ErrorCode { OK=0, TIMEOUT=1, CRC_FAIL=2 };
+
+-----------------------------------------
+ENUM SIZE
+-----------------------------------------
+- In C (pre-C11): size = int (usually 4 bytes)
+- In C11/C++11: enum underlying type can be explicitly set
+- In embedded: size matters if stored in structs (use care!)
+
+Example (C11):
+--------------
+enum Status : uint8_t { OK=0, FAIL=1 };  // GCC/Clang extension
+
+-----------------------------------------
+BITMASK ENUMS
+-----------------------------------------
+- Enums can represent flags combined with bitwise ops
+
+Example:
+--------
+enum Permission {
+    READ  = 1 << 0,   // 0x01
+    WRITE = 1 << 1,   // 0x02
+    EXEC  = 1 << 2    // 0x04
+};
+int perm = READ | WRITE;
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+- Enum constants are just ints in C (can be used outside enum type)
+- Underlying type usually int, not guaranteed across compilers
+- Large enums may silently wrap if stored in small var (e.g. uint8_t)
+- Enums + switch: if you forget a case, compiler may not warn
+- Enums in structs → padding/alignment still applies
+
+-----------------------------------------
+QUICK RECALL
+-----------------------------------------
+- Enum = named int constants, improves readability
+- Default values start 0, can be overridden
+- Used for states, error codes, modes, flags
+- Size usually int (4 bytes), but compiler-dependent
+- Enums vs #define → enums safer, grouped, debuggable
+- Enums with bit-shifts → good for flags/permissions
