@@ -1,0 +1,91 @@
+===========================================================
+RTOS Inter-task Communication - Block 3: MUTEX
+===========================================================
+
+What is a Mutex?
+----------------
+- MUTual EXclusion object.
+- Used to protect shared resources (UART, I2C, SPI, LCD).
+- Only one task can own the mutex at a time.
+- If another task tries to take it, it blocks until released.
+
+Why Mutex over Semaphore?
+-------------------------
+- Both can lock resources, but:
+  * Mutex → has ownership (only owner can release).
+  * Mutex → supports Priority Inheritance (solves priority inversion).
+  * Binary Semaphore → no ownership, no priority inheritance.
+- Rule of thumb:
+  * Use Semaphore for signaling.
+  * Use Mutex for resource protection.
+
+Priority Inheritance (How Mutex solves Priority Inversion)
+----------------------------------------------------------
+The Problem:
+- Low-priority task (L) locks a resource.
+- High-priority task (H) also needs it → blocks.
+- Medium-priority task (M), unrelated, keeps running and preempting L.
+- Result: H starves → PRIORITY INVERSION.
+
+The Solution (Mutex behavior):
+- When H blocks on a mutex owned by L:
+   → RTOS temporarily raises L’s priority to match H.
+- Now L preempts M, finishes its work, releases the mutex.
+- After releasing:
+   → L’s priority returns to normal.
+   → H acquires mutex and runs.
+   → M runs afterward.
+
+Timeline Visualization (Priority Levels: H=3, M=2, L=1):
+---------------------------------------------------------
+1. L (priority 1) takes mutex.
+2. H (priority 3) tries to take mutex → blocks.
+3. RTOS boosts L’s priority = 3.
+4. L runs ahead of M, completes work, releases mutex.
+5. H acquires mutex, continues running.
+6. L drops back to priority 1.
+=> Priority inversion avoided.
+
+FreeRTOS Example: Mutex for UART Access
+---------------------------------------
+
+SemaphoreHandle_t xMutex;
+
+void vTask1(void *pv) {
+    for(;;) {
+        xSemaphoreTake(xMutex, portMAX_DELAY);
+        printf("Task1 writing to UART...\n");
+        vTaskDelay(pdMS_TO_TICKS(100)); // simulate UART use
+        xSemaphoreGive(xMutex);
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+}
+
+void vTask2(void *pv) {
+    for(;;) {
+        xSemaphoreTake(xMutex, portMAX_DELAY);
+        printf("Task2 writing to UART...\n");
+        vTaskDelay(pdMS_TO_TICKS(50)); // simulate shorter use
+        xSemaphoreGive(xMutex);
+        vTaskDelay(pdMS_TO_TICKS(150));
+    }
+}
+
+int main(void) {
+    xMutex = xSemaphoreCreateMutex(); // Mutex supports priority inheritance
+
+    xTaskCreate(vTask1, "Task1", 1000, NULL, 1, NULL);
+    xTaskCreate(vTask2, "Task2", 1000, NULL, 2, NULL);
+
+    vTaskStartScheduler();
+}
+
+Key Points
+----------
+- Mutex is best for protecting critical sections/resources.
+- Ownership: Only the task that takes it can give it back.
+- Supports priority inheritance (important in real-time systems).
+- Difference vs Binary Semaphore:
+  * Binary Sem → event signaling.
+  * Mutex → resource protection.
+===========================================================
