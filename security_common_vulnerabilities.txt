@@ -1,0 +1,89 @@
+====================================================
+4. COMMON VULNERABILITIES
+====================================================
+
+1. BUFFER OVERFLOW
+----------------------------------------------------
+- Writing data beyond allocated buffer size.
+- Can overwrite adjacent memory → variables, control data.
+- Especially dangerous in C (no bounds checking).
+- Attacker can inject malicious code into memory.
+
+Example (unsafe):
+-------------------------------------------
+void copy(char *src) {
+    char buf[16];
+    strcpy(buf, src);   // no bounds check
+}
+
+Safe version:
+-------------------------------------------
+void copy_safe(char *src) {
+    char buf[16];
+    strncpy(buf, src, sizeof(buf)-1);
+    buf[15] = '\0';
+}
+
+----------------------------------------------------
+2. STACK SMASHING
+----------------------------------------------------
+- Special case of buffer overflow → overwrite stack frame.
+- Stack contains local variables, saved registers, return address.
+- If attacker overwrites return address → redirect execution.
+- Leads to arbitrary code execution (classic exploit).
+
+Visualization:
+-------------------------------------------
+[ buf ][ saved EBP ][ return addr ]  
+Overflow → attacker overwrites return addr.
+
+Countermeasures:
+- Stack canaries (check values before function return).
+- DEP (Data Execution Prevention) → mark stack as non-executable.
+- ASLR (Address Space Layout Randomization).
+
+----------------------------------------------------
+3. FORMAT STRING VULNERABILITY
+----------------------------------------------------
+- Using printf(user_input) directly.
+- Attacker provides "%x %x %x ..." → read stack data.
+- Can even write memory using "%n".
+- Fix: always use printf("%s", user_input).
+
+----------------------------------------------------
+4. INTEGER OVERFLOW / UNDERFLOW
+----------------------------------------------------
+- Operations exceed max/min of integer type.
+- Can wrap around → unexpected behavior.
+- Example:
+   uint8_t x = 255; x++;
+   → becomes 0.
+
+- May lead to buffer miscalculation → overflow.
+
+----------------------------------------------------
+5. USE-AFTER-FREE
+----------------------------------------------------
+- Program frees memory but continues to use pointer.
+- Attacker can allocate new object in freed space.
+- Leads to crashes or arbitrary code execution.
+- Fix: set pointer = NULL after free.
+
+----------------------------------------------------
+6. DOUBLE FREE
+----------------------------------------------------
+- Freeing same memory block twice.
+- Corrupts heap management structures.
+- Can be exploited to execute code.
+
+----------------------------------------------------
+SUMMARY
+----------------------------------------------------
+- Buffer overflow: overwrite adjacent memory.
+- Stack smashing: overwrite return address on stack.
+- Format string: misuse of printf-family functions.
+- Integer overflow: math exceeds limits → unsafe results.
+- Use-after-free & double free: memory misuse in heap.
+
+These are classic C/C++ vulnerabilities exploited in embedded and OS code.
+====================================================
