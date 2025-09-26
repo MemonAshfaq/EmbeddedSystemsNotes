@@ -1,0 +1,96 @@
+====================================================
+2. SYMMETRIC VS ASYMMETRIC CRYPTOGRAPHY
+====================================================
+
+SYMMETRIC CRYPTOGRAPHY
+----------------------------------------------------
+- Same key used for encryption & decryption.
+- Very fast → best for large/bulk data.
+- Weakness: key distribution (sharing secret key securely).
+- Examples: AES, ChaCha20.
+
+AES (Advanced Encryption Standard)
+- Block cipher, 128-bit blocks.
+- Key sizes: 128, 192, 256 bits.
+- Modes of operation:
+   • ECB: insecure (patterns leak).
+   • CBC: random IV for each block chain.
+   • GCM: provides both encryption + integrity.
+- Used in:
+   • Disk encryption
+   • VPN traffic
+   • Encrypted firmware storage
+
+----------------------------------------------------
+ASYMMETRIC CRYPTOGRAPHY
+----------------------------------------------------
+- Uses key pair: PUBLIC key + PRIVATE key.
+- Two distinct use cases:
+
+1. Encryption/Decryption (Confidentiality)
+   - Encrypt with RECEIVER’s PUBLIC key.
+   - Decrypt with RECEIVER’s PRIVATE key.
+   - Ensures only receiver can read the message.
+
+2. Signing/Verification (Authenticity + Integrity)
+   - Sender signs data hash with their PRIVATE key.
+   - Receiver verifies signature with sender’s PUBLIC key.
+   - Confirms data came from trusted source, not altered.
+
+- Algorithms:
+   • RSA: secure by difficulty of factoring primes (2048/4096 bits).
+   • ECC: smaller keys, faster, strong security → better for embedded.
+
+Use Cases:
+- TLS handshakes (RSA/ECC for session key exchange).
+- Firmware signing & secure boot (sign/verify).
+- Authentication (SSH, PGP, certificates).
+
+----------------------------------------------------
+FW AUTHENTICATION EXAMPLE
+----------------------------------------------------
+- Vendor signs firmware hash with PRIVATE key.
+- Device stores PUBLIC key in ROM/OTP.
+- Bootloader verifies firmware signature using PUBLIC key.
+- Prevents tampered/unauthorized firmware from running.
+
+----------------------------------------------------
+HOW THEY WORK TOGETHER (Hybrid)
+----------------------------------------------------
+- Asymmetric crypto is slow → used only to exchange keys / verify.
+- Once session key is exchanged → Symmetric crypto (AES) used for bulk data.
+- Example: HTTPS
+   • Server sends public key.
+   • Client encrypts random session key → sends to server.
+   • Server decrypts with private key.
+   • Both now share session key for AES.
+
+----------------------------------------------------
+CODE EXAMPLES (Pseudo-C)
+----------------------------------------------------
+Symmetric (AES):
+-------------------------------------------
+ciphertext = aes_encrypt(plaintext, key);
+plaintext  = aes_decrypt(ciphertext, key);
+
+Asymmetric (RSA):
+-------------------------------------------
+ciphertext = rsa_encrypt(plaintext, public_key);
+plaintext  = rsa_decrypt(ciphertext, private_key);
+
+Signature Verification (FW Auth):
+-------------------------------------------
+sig = sign(hash(firmware), private_key);
+verify = rsa_verify(sig, hash(firmware), public_key);
+
+----------------------------------------------------
+SUMMARY
+----------------------------------------------------
+- Symmetric: fast, one key, good for large data, weak distribution.
+- Asymmetric: slow, key pairs, solves distribution, used for signatures.
+- Public key: 
+   • Encrypt (confidentiality) OR Verify signature (authenticity).
+- Private key:
+   • Decrypt (confidentiality) OR Sign (authenticity).
+- Real-world: Hybrid = combine both.
+====================================================
