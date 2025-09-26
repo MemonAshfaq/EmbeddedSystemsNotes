@@ -1,0 +1,72 @@
+===========================================================
+RTOS Topic: DEBUGGING & PITFALLS
+===========================================================
+
+1. Stack Overflow
+-----------------
+- Each task has its own stack.
+- If stack too small → memory corruption, crashes.
+- Common causes:
+   * Deep recursion.
+   * Large local variables (arrays).
+   * Underestimating stack size.
+
+Detection:
+- Guard bytes / canaries: RTOS fills unused stack with 0xA5.
+  Overwritten pattern = overflow.
+- FreeRTOS: enable configCHECK_FOR_STACK_OVERFLOW.
+- MPU (if available) can trap invalid access.
+- Callback: vApplicationStackOverflowHook().
+
+Prevention:
+- Size stacks carefully (measure peak usage).
+- Avoid large local arrays, use static/global instead.
+
+-----------------------------------------------------------
+2. Deadlocks
+------------
+- Occurs when tasks wait forever for resources.
+- Example: Task A holds Mutex1 → waiting for Mutex2.
+           Task B holds Mutex2 → waiting for Mutex1.
+- Both stuck, system hangs.
+
+Prevention:
+- Always acquire resources in same global order.
+- Use timeouts when waiting for mutex/semaphore.
+- Use priority inheritance to avoid priority inversion deadlock.
+
+-----------------------------------------------------------
+3. Priority Misconfiguration
+-----------------------------
+- Too many high-priority tasks = low-priority tasks starve.
+- Starvation → watchdog resets, missed background work.
+- Assign priorities based on deadlines, not "importance".
+
+Guideline:
+- ISRs: minimal, highest urgency.
+- High-priority tasks: short, critical.
+- Medium/low-priority tasks: background, maintenance.
+
+-----------------------------------------------------------
+4. Jitter & Missed Deadlines
+----------------------------
+- Jitter = variation in timing of periodic tasks.
+- Causes:
+   * Long ISRs blocking tick.
+   * Too many tasks of equal priority (context switching).
+   * Poorly tuned tick rate.
+
+Debugging Tools:
+- Tracealyzer, FreeRTOS+Trace, SEGGER SystemView.
+- Measure task execution time and latency.
+
+-----------------------------------------------------------
+5. General Best Practices
+--------------------------
+- Keep ISRs short, defer work to tasks.
+- Avoid malloc/free in critical systems → use static allocation.
+- Use direct-to-task notifications (faster than queues/semaphores).
+- Always test with high load and corner cases.
+- Use watchdog timers as safety net.
+
+===========================================================
