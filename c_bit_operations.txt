@@ -1,0 +1,116 @@
+=========================================
+Bit Manipulation in C (Embedded Focus)
+=========================================
+
+WHY IMPORTANT?
+--------------
+- Low-level programming requires direct control of bits
+- Used for register programming, flags, protocols, compression
+- Efficient → single instruction on most CPUs
+
+-----------------------------------------
+BIT MASK BASICS
+-----------------------------------------
+#define BIT(n)   (1U << (n))   // Create bit mask
+
+Examples:
+BIT(0) → 0x00000001
+BIT(3) → 0x00000008
+
+-----------------------------------------
+COMMON OPERATIONS
+-----------------------------------------
+
+1) SET a bit
+x |= BIT(n);     // set bit n
+
+2) CLEAR a bit
+x &= ~BIT(n);    // clear bit n
+
+3) TOGGLE a bit
+x ^= BIT(n);     // flip bit n
+
+4) CHECK a bit
+if (x & BIT(n))  // test if bit n set
+
+-----------------------------------------
+MULTI-BIT FIELDS
+-----------------------------------------
+#define FIELD_MASK(width, shift)   (((1U << (width)) - 1) << (shift))
+
+Example: 3-bit field at position 4
+mask = FIELD_MASK(3, 4)  → 0x70 (01110000)
+
+- Insert value:
+x = (x & ~mask) | ((val << 4) & mask);
+
+- Extract value:
+val = (x & mask) >> 4;
+
+-----------------------------------------
+BYTE / ENDIAN SWAPS
+-----------------------------------------
+Swap 16-bit:
+uint16_t swap16(uint16_t x) {
+    return (x << 8) | (x >> 8);
+}
+
+Swap 32-bit:
+uint32_t swap32(uint32_t x) {
+    return (x >> 24) |
+           ((x >> 8) & 0x0000FF00) |
+           ((x << 8) & 0x00FF0000) |
+           (x << 24);
+}
+
+-----------------------------------------
+BIT TRICKS (HANDY)
+-----------------------------------------
+- Is number power of 2?
+  (x && !(x & (x-1)))
+
+- Count set bits (Brian Kernighan’s algo)
+  while (x) { count++; x &= (x-1); }
+
+- Get lowest set bit
+  mask = x & -x;
+
+- Clear lowest set bit
+  x &= (x-1);
+
+-----------------------------------------
+EMBEDDED REGISTER ACCESS
+-----------------------------------------
+#define REG32(addr) (*(volatile uint32_t*)(addr))
+
+// Example: GPIO register
+#define GPIOA_MODER  REG32(0x40020000)
+
+// Set bit 5
+GPIOA_MODER |= BIT(5);
+
+// Clear bit 3
+GPIOA_MODER &= ~BIT(3);
+
+// Write field (mode = 3 at pos=2)
+GPIOA_MODER = (GPIOA_MODER & ~FIELD_MASK(2,2)) | ((3 << 2) & FIELD_MASK(2,2));
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+- Shifting by >= width of type = UB
+- Negative shifts = UB
+- Be careful with signed vs unsigned shifts
+- Mask must match type size (use 1U, not 1)
+- Endianness affects how bitfields map to memory
+- Reading-modify-writing registers may need critical section
+
+-----------------------------------------
+QUICK RECALL
+-----------------------------------------
+- BIT(n) = (1U << n)
+- set → |=, clear → &= ~, toggle → ^=
+- Extract/insert fields with masks + shifts
+- swap16/swap32 for endian conversion
+- Common tricks: x & -x, x & (x-1)
+- In embedded → always use volatile when accessing HW regs
