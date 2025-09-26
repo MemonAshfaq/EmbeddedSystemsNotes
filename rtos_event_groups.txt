@@ -1,0 +1,81 @@
+===========================================================
+RTOS Inter-task Communication - Block 4: EVENT GROUPS
+===========================================================
+
+What is an Event Group?
+-----------------------
+- An Event Group is a set of bits managed by the RTOS.
+- Each bit represents an "event".
+- Tasks can wait for:
+   * a single bit (any event),
+   * or multiple bits (all events together).
+- Tasks block until required events occur.
+
+Why Event Groups?
+-----------------
+- Allow synchronization of multiple tasks/events at once.
+- Example: Task must wait until both "WiFi connected" and 
+  "Sensor ready" events are set.
+- More efficient than using multiple semaphores.
+
+How it Works:
+-------------
+- Event bits = flags.
+- Task calls WaitBits() → blocks until bit(s) are set.
+- Another task or ISR sets the bits.
+- Once bits are set, waiting task unblocks.
+
+FreeRTOS Example: Waiting for Two Events
+----------------------------------------
+
+EventGroupHandle_t xEventGroup;
+
+#define WIFI_READY    (1<<0)
+#define SENSOR_READY  (1<<1)
+
+void vSystemTask(void *pv) {
+    EventBits_t bits;
+    for(;;) {
+        // Wait until both events occur
+        bits = xEventGroupWaitBits(xEventGroup,
+                                   WIFI_READY | SENSOR_READY,
+                                   pdTRUE,   // clear bits on exit
+                                   pdTRUE,   // wait for ALL bits
+                                   portMAX_DELAY);
+        printf("System Task: WiFi and Sensor ready, starting operation\n");
+    }
+}
+
+void vWifiTask(void *pv) {
+    // Simulate WiFi becoming ready
+    vTaskDelay(pdMS_TO_TICKS(500));
+    xEventGroupSetBits(xEventGroup, WIFI_READY);
+    printf("WiFi ready!\n");
+    vTaskDelete(NULL);
+}
+
+void vSensorTask(void *pv) {
+    // Simulate sensor init
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    xEventGroupSetBits(xEventGroup, SENSOR_READY);
+    printf("Sensor ready!\n");
+    vTaskDelete(NULL);
+}
+
+int main(void) {
+    xEventGroup = xEventGroupCreate();
+
+    xTaskCreate(vSystemTask, "System", 1000, NULL, 2, NULL);
+    xTaskCreate(vWifiTask,   "WiFi",   1000, NULL, 2, NULL);
+    xTaskCreate(vSensorTask, "Sensor", 1000, NULL, 2, NULL);
+
+    vTaskStartScheduler();
+}
+
+Key Points
+----------
+- Event groups are efficient for multiple event synchronization.
+- Good for "wait until conditions are met" type problems.
+- Unlike semaphores, they allow one-to-many signaling.
+- Events can be set from ISRs as well.
+===========================================================
