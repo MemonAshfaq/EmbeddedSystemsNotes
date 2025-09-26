@@ -1,0 +1,60 @@
+==================================================
+Boot Sequence and Reset Sequence (ARM Cortex)
+==================================================
+
+1. What happens on reset?
+-------------------------
+- CPU starts in Reset state
+- Execution begins from vector table (address 0x00000000 by default)
+- Two key values are read from vector table:
+  [0] Initial Stack Pointer (SP)
+  [1] Reset Handler address (PC)
+
+2. Sequence of steps
+--------------------
+1. Power-on or reset signal asserted
+2. Hardware sets PC = content at 0x00000004
+3. Hardware sets SP = content at 0x00000000
+4. CPU enters Handler mode
+5. Executes Reset_Handler
+
+3. Reset_Handler
+----------------
+- Written in startup assembly / C
+- Typical tasks:
+  - Copy .data section from Flash to RAM
+  - Zero initialize .bss section
+  - Configure clock system (PLL, oscillators)
+  - Initialize peripherals if needed
+  - Setup vector table offset (if relocated)
+  - Set stack pointers (MSP/PSP)
+  - Call SystemInit() (CMSIS convention)
+  - Finally call main()
+
+4. Boot ROM (in SoCs / Cortex-A)
+--------------------------------
+- Some MCUs have Boot ROM code executed first
+- Decides boot source (Flash, SRAM, UART, SPI, etc.)
+- Configures security, memory map, exception vectors
+
+5. Reset Types (MCU dependent)
+------------------------------
+- Power-on Reset: full reset
+- External Reset (nRESET pin)
+- Watchdog Reset
+- Software Reset (writing to SYSRESETREQ)
+
+6. Interview Pointers
+---------------------
+Q: What is the very first instruction executed?
+   - Reset_Handler (address from vector table)
+
+Q: Why is .data copied to RAM during startup?
+   - Because initialized variables must be writable
+
+Q: Why is .bss zeroed?
+   - Standard C requirement: uninitialized globals = 0
+
+Q: Difference between MSP and PSP after reset?
+   - Reset always starts with MSP
+   - PSP can be configured later for threads
