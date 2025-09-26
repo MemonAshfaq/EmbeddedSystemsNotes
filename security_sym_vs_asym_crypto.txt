@@ -38,13 +38,39 @@ ASYMMETRIC CRYPTOGRAPHY
    - Confirms data came from trusted source, not altered.
 
 - Algorithms:
-   • RSA: secure by difficulty of factoring primes (2048/4096 bits).
+   • RSA: security based on difficulty of factoring large composite numbers 
+           (n = p × q, product of two large primes).
+           - Easy to multiply p × q, but very hard to factor n back into p and q.
+           - Without p and q, attacker cannot compute private key.
    • ECC: smaller keys, faster, strong security → better for embedded.
 
-Use Cases:
-- TLS handshakes (RSA/ECC for session key exchange).
-- Firmware signing & secure boot (sign/verify).
-- Authentication (SSH, PGP, certificates).
+----------------------------------------------------
+RSA MATH RELATIONSHIP (How n, p, q, d are linked)
+----------------------------------------------------
+1. Pick two primes p and q.
+2. Compute modulus: n = p × q.
+3. Compute totient: φ(n) = (p-1)(q-1).
+4. Choose public exponent e (commonly 65537).
+5. Compute private exponent d:
+      d = modular inverse of e mod φ(n)
+      (d × e) ≡ 1 (mod φ(n))
+
+- Public key = (n, e)
+- Private key = (n, d)
+
+Example (small numbers):
+- p = 5, q = 11
+- n = 55
+- φ(n) = (5-1)(11-1) = 40
+- e = 3
+- d = 27 (since 3×27 = 81 ≡ 1 mod 40)
+- Public key = (55, 3)
+- Private key = (55, 27)
+
+Summary:
+- Private key d depends on φ(n).
+- φ(n) depends on p and q.
+- To break RSA, attacker must factor n → find p, q → compute φ(n) → compute d.
 
 ----------------------------------------------------
 FW AUTHENTICATION EXAMPLE
