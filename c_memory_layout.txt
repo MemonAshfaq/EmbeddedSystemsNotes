@@ -49,27 +49,82 @@ STARTUP SEQUENCE (EMBEDDED)
   * Startup assembly file (crt0, reset_handler)
   * Linker script defines memory regions
 
------------------------------------------
-LINKER SCRIPT BASICS (Embedded)
------------------------------------------
-Defines how sections map to physical memory.
-
-Example (simplified):
+LINKER SCRIPT EXAMPLE
 ---------------------
 SECTIONS {
-  .text : { *(.text*) } > FLASH
+  .text   : { *(.text*) }   > FLASH
   .rodata : { *(.rodata*) } > FLASH
-  .data : {
-    *(.data*)
-  } > RAM AT > FLASH
-  .bss : { *(.bss*) } > RAM
-  .stack (COPY) : { ... } > RAM
+  .data   : { *(.data*) }   > RAM AT > FLASH
+  .bss    : { *(.bss*) }    > RAM
+  .stack  (COPY) : { ... }  > RAM
 }
 
-Notes:
-- "AT > FLASH" = initial values stored in Flash, copied to RAM
-- Stack often placed at top of RAM
-- Heap placed after .bss
+WHAT IT MEANS
+-------------
+.text
+- Program code (functions/instructions)
+- Stored in FLASH, runs directly from FLASH
+
+.rodata
+- Read-only data (const globals, string literals)
+- Stored in FLASH
+
+.data
+- Global/static variables WITH initial values
+- Example: int x = 5;
+- Lives in RAM so it can change
+- AT > FLASH → initial values stored in FLASH, copied to RAM at startup
+
+.bss
+- Global/static variables WITHOUT initial values (zeroed)
+- Example: int y;
+- Lives in RAM, startup code clears to 0
+- Saves flash space (only size stored)
+
+.stack
+- Stack area in RAM
+- Stores local vars, return addresses, ISR contexts
+- Grows downward (from top of RAM)
+- Size set in linker script (example: 0x1000 bytes)
+
+-----------------------------------------
+EMBEDDED STARTUP STEPS
+-----------------------------------------
+1. CPU reset → fetch reset vector from FLASH (.text)
+2. Copy .data init values from FLASH → RAM
+3. Clear .bss to zero
+4. Set stack pointer
+5. Call main()
+
+-----------------------------------------
+TYPICAL MEMORY MAP (MCU)
+-----------------------------------------
+[ FLASH ]
+  .text       (code)
+  .rodata     (constants)
+  .data_init  (initial values for .data)
+
+[ RAM ]
+  .data       (globals/statics with init)
+  .bss        (globals/statics uninit → zero)
+  heap        (malloc, grows upward)
+  stack       (locals/frames, grows downward)
+
+-----------------------------------------
+INTERVIEW CHECKLIST
+-----------------------------------------
+- .text → code → FLASH
+- .rodata → constants → FLASH
+- .data → initialized globals/statics → RAM (init in FLASH)
+- .bss → uninitialized globals/statics → RAM (zeroed at startup)
+- locals → stack
+- malloc → heap
+- Why AT > FLASH? → init values come from FLASH
+- Why .bss takes no FLASH space? → only size info, zeroed at runtime
+- Stack vs Heap → can collide if RAM is small
+- Static local vars → stored in .data/.bss (not stack)
+- String literals → .rodata
+- Stack overflow & heap collision → common embedded bugs
 
 -----------------------------------------
 STACK vs HEAP (Comparison)
