@@ -58,6 +58,69 @@ int main(void) {
     vTaskStartScheduler();
 }
 
+
+===========================================================
+RTOS Inter-task Communication - Block 2 (extended): SEMAPHORES
+===========================================================
+
+Counting Semaphore Example
+--------------------------
+Use Case:
+- Suppose we have 3 identical UART channels.
+- Up to 3 tasks can use them at the same time.
+- If all 3 are busy, other tasks must wait.
+
+FreeRTOS Example: Counting Semaphore
+
+SemaphoreHandle_t xCountSem;
+
+void vUartTask(void *pv) {
+    for(;;) {
+        // Try to get one UART channel
+        if (xSemaphoreTake(xCountSem, portMAX_DELAY) == pdPASS) {
+            printf("Task %s got a UART channel\n", pcTaskGetName(NULL));
+
+            // Simulate UART usage
+            vTaskDelay(pdMS_TO_TICKS(200));
+
+            printf("Task %s releasing UART\n", pcTaskGetName(NULL));
+
+            // Release channel back
+            xSemaphoreGive(xCountSem);
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+int main(void) {
+    // Create counting semaphore with max count = 3
+    // Initial count = 3 (3 UARTs available)
+    xCountSem = xSemaphoreCreateCounting(3, 3);
+
+    // Create 5 tasks competing for 3 UART channels
+    for (int i = 0; i < 5; i++) {
+        char name[10];
+        sprintf(name, "Task%d", i);
+        xTaskCreate(vUartTask, name, 1000, NULL, 2, NULL);
+    }
+
+    vTaskStartScheduler();
+}
+
+Explanation:
+------------
+- At most 3 tasks can hold the semaphore simultaneously.
+- When a task takes one, count decreases.
+- When count reaches 0, extra tasks block until one is released.
+- Ensures fair sharing of limited resources.
+
+Key Points Recap:
+-----------------
+- Binary Semaphore → event signaling (flag).
+- Counting Semaphore → resource pool management.
+- Neither provides priority inheritance (use Mutex instead).
+===========================================================
+
 Key Points
 ----------
 - Binary semaphore is best for EVENT signaling.
