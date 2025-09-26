@@ -1,0 +1,62 @@
+====================================================
+1. SECURE BOOT & CHAIN OF TRUST
+====================================================
+
+What is Secure Boot?
+- Mechanism to ensure device runs only trusted software.
+- At power-on, device checks integrity & authenticity of code before executing.
+- Prevents execution of malware, tampered firmware, or unauthorized updates.
+
+Why Needed?
+- Attackers may replace firmware to gain control.
+- Protects IoT, automotive, medical, defense devices from code injection.
+- Ensures product integrity and compliance.
+
+How It Works (Steps)
+1. Hardware reset → CPU starts in ROM (immutable code).
+2. ROM contains root of trust (RoT) public key/hash (burned in OTP/fuses).
+3. ROM verifies first bootloader (signature/hash).
+4. Bootloader verifies next stage (kernel, OS, apps).
+5. Each stage only runs if verification succeeds.
+
+Chain of Trust
+- Each stage checks the next stage before execution.
+- Example chain:
+    ROM → Bootloader → Kernel → Drivers/Apps
+- Break anywhere = boot fails (device may enter recovery mode).
+
+Authentication Methods
+- Digital Signature:
+    • Firmware is hashed (SHA-256).
+    • Hash signed with private key (RSA/ECC).
+    • Device uses public key (stored in RoT) to verify signature.
+- Symmetric option: HMAC (less common for boot, harder to manage keys).
+
+Key Storage
+- Public key/hash stored in ROM/OTP/eFuse.
+- Private key kept offline by vendor, never in device.
+
+Failure Behavior
+- If verification fails:
+    • Device halts or boots recovery image.
+    • Prevents untrusted code execution.
+
+Practical Considerations
+- Performance: Hash + signature verification can add boot time.
+- Key management: If private key compromised → update mechanism needed.
+- Firmware updates: Must also be signed, otherwise rejected.
+
+Code Example (Pseudo-C)
+----------------------------------------------------
+bool verify_stage(uint8_t *fw, size_t len, sig_t *sig) {
+    uint8_t hash[32];            // SHA-256 output
+    sha256(fw, len, hash);       // compute hash of firmware
+    return rsa_verify(sig, hash, public_key);
+}
+
+Boot Flow
+----------------------------------------------------
+reset → ROM (RoT) → verify Bootloader
+      → Bootloader verifies Kernel
+      → Kernel verifies Drivers/Apps
+====================================================
