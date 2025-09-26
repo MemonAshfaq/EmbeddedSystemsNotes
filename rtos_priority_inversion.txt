@@ -1,0 +1,77 @@
+===========================================================
+Priority Inversion
+===========================================================
+
+The Problem:
+------------
+1. Low-priority task (L) locks a resource (e.g., mutex).
+2. High-priority task (H) wants the same resource, so it blocks.
+3. A Medium-priority task (M), which doesn’t need the resource, 
+   keeps running because it has higher priority than L.
+4. Result → L cannot finish and release the resource.
+            H stays blocked.
+            M hogs the CPU.
+=> PRIORITY INVERSION: High-priority task is indirectly blocked 
+   by a Medium-priority task.
+
+Real-World Example:
+- Mars Pathfinder (1997): system resets caused by priority inversion.
+  NASA fixed it by enabling priority inheritance in the RTOS.
+
+-----------------------------------------------------------
+The Solution:
+-----------------------------------------------------------
+
+1. **Priority Inheritance** (default in FreeRTOS mutexes):
+   - When L holds a mutex needed by H,
+     L temporarily inherits H’s priority.
+   - This prevents M from preempting L.
+   - Once L releases the mutex, its priority returns to normal.
+
+2. **Priority Ceiling Protocol**:
+   - Each resource has a "ceiling" priority.
+   - Any task locking the resource executes at this ceiling.
+   - Prevents both deadlocks and priority inversion.
+
+-----------------------------------------------------------
+FreeRTOS Example
+-----------------------------------------------------------
+
+SemaphoreHandle_t xMutex;
+
+void vLowTask(void *pv) {
+    for(;;) {
+        xSemaphoreTake(xMutex, portMAX_DELAY);   // Lock resource
+        // Simulate long work
+        vTaskDelay(pdMS_TO_TICKS(100));
+        xSemaphoreGive(xMutex);                  // Release resource
+    }
+}
+
+void vHighTask(void *pv) {
+    for(;;) {
+        // Needs same resource
+        xSemaphoreTake(xMutex, portMAX_DELAY);
+        printf("High-priority task running\n");
+        xSemaphoreGive(xMutex);
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+void vMediumTask(void *pv) {
+    for(;;) {
+        // Keeps preempting low task
+        printf("Medium-priority task hogging CPU\n");
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+}
+
+int main(void) {
+    xMutex = xSemaphoreCreateMutex();  // Supports priority inheritance
+
+    xTaskCreate(vLowTask,    "Low",    1000, NULL, 1, NULL);
+    xTaskCreate(vMediumTask, "Medium", 1000, NULL, 2, NULL);
+    xTaskCreate(vHighTask,   "High",   1000, NULL, 3, NULL);
+
+    vTaskStartScheduler();
+}
