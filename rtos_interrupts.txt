@@ -1,0 +1,75 @@
+===========================================================
+RTOS Topic: INTERRUPT HANDLING
+===========================================================
+
+Why interrupts matter:
+----------------------
+- ISRs (Interrupt Service Routines) handle urgent hardware events.
+- In RTOS, tasks + ISRs must cooperate.
+- Rule: Keep ISRs short → defer heavy work to tasks.
+
+ISR vs Task responsibilities:
+-----------------------------
+- ISR:
+   * Very short, fast, deterministic.
+   * Capture event, clear hardware flag.
+   * Notify/signal a task (using FromISR API).
+- Task:
+   * Does heavy processing.
+   * Can block, use RTOS functions safely.
+
+FreeRTOS ISR → Task Example (binary semaphore):
+------------------------------------------------
+
+SemaphoreHandle_t xBinSem;
+
+void vTask(void *pv) {
+    for(;;) {
+        // Wait until ISR signals
+        xSemaphoreTake(xBinSem, portMAX_DELAY);
+        printf("Task: Processing interrupt event\n");
+    }
+}
+
+void vISR_Handler(void) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    // Give semaphore from ISR
+    xSemaphoreGiveFromISR(xBinSem, &xHigherPriorityTaskWoken);
+
+    // Request context switch if needed
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+int main(void) {
+    xBinSem = xSemaphoreCreateBinary();
+    xTaskCreate(vTask, "HandlerTask", 1000, NULL, 2, NULL);
+    vTaskStartScheduler();
+}
+
+Interrupt Latency & Determinism:
+--------------------------------
+- Interrupt latency = time from event to ISR execution.
+- RTOS must ensure bounded (predictable) latency.
+- Sources of latency:
+   * CPU disabling interrupts.
+   * Long critical sections inside kernel.
+   * Nested ISRs (if supported).
+
+Best Practices:
+---------------
+- Keep ISR code minimal.
+- Never call normal FreeRTOS APIs inside ISR → use FromISR versions.
+- Do not block inside ISR.
+- Defer work to tasks using:
+   * Binary semaphore,
+   * Queue,
+   * Direct-to-task notifications (fastest in FreeRTOS).
+
+Key Points:
+-----------
+- ISR = quick response, defer heavy work.
+- Use FromISR APIs for signaling.
+- Determinism is critical in real-time systems.
+- Design goal: predictable, bounded latency.
+===========================================================
