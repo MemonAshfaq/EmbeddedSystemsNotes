@@ -114,6 +114,58 @@ Explanation:
 - When count reaches 0, extra tasks block until one is released.
 - Ensures fair sharing of limited resources.
 
+
+===========================================================
+Binary vs Counting Semaphore - Use Cases
+===========================================================
+
+Binary Semaphore
+----------------
+- Think of it as a FLAG (0 or 1).
+- Used for synchronization (not data transfer).
+- Common use cases:
+   * ISR → Task signaling (wake a task when event occurs).
+   * Simple event notification between tasks.
+   * Ensuring task waits until another task completes an action.
+
+Example:
+- A UART ISR gives a binary semaphore when new data arrives.
+- A task takes the semaphore and processes the data.
+
+Key: At most one semaphore token exists at a time.
+
+-----------------------------------------------------------
+
+Counting Semaphore
+------------------
+- Think of it as a COUNTER.
+- Tracks multiple available resources or multiple events.
+- Common use cases:
+   * Managing a pool of identical resources (e.g., 3 UART channels).
+   * Limiting concurrent access to N resources.
+   * Counting how many times an event occurred.
+
+Example:
+- Counting semaphore with max = 3 for 3 UART channels.
+- Up to 3 tasks can take the semaphore at once.
+- 4th task blocks until one is released.
+
+Key: Multiple tokens exist (count > 1).
+
+-----------------------------------------------------------
+Quick Comparison
+-----------------------------------------------------------
+Binary Semaphore:
+- Value = 0 or 1.
+- Best for EVENT signaling.
+- No priority inheritance (use Mutex if needed).
+
+Counting Semaphore:
+- Value = 0 to N.
+- Best for RESOURCE management or counting multiple events.
+- No priority inheritance.
+===========================================================
+
 Key Points Recap:
 -----------------
 - Binary Semaphore → event signaling (flag).
