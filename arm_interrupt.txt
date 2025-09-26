@@ -1,0 +1,68 @@
+==================================================
+What Happens on an Interrupt (Cortex-M)
+==================================================
+
+1. Interrupt Trigger
+--------------------
+- External signal (IRQ line) or internal event (SysTick, fault)
+- NVIC detects pending interrupt
+- NVIC checks priority vs current execution
+
+2. Entry Sequence (done fully in hardware)
+------------------------------------------
+a) CPU finishes current instruction (no mid-instruction break)
+b) Pipeline flushed
+c) Active state switched to Handler mode
+d) Current context auto-stacked onto current stack (MSP or PSP):
+   * R0, R1, R2, R3
+   * R12
+   * LR
+   * PC
+   * xPSR
+   (8 words pushed, 32 bytes)
+
+   Note: If FPU enabled, extra FP registers may also be stacked
+
+e) Vector table entry for IRQ fetched
+f) PC loaded with ISR handler address
+
+3. Execution of ISR
+-------------------
+- CPU begins executing ISR from vector table
+- LR is set to a special EXC_RETURN value
+  (tells CPU how to return from exception)
+
+4. Exit from ISR
+----------------
+- ISR ends with "BX LR" or "POP {..., PC}"
+- CPU recognizes EXC_RETURN pattern in LR
+- Hardware automatically un-stacks:
+   * xPSR, PC, LR, R12, R3, R2, R1, R0
+- Execution resumes from interrupted point
+
+5. NVIC Optimizations
+---------------------
+- Tail-Chaining:
+  If another pending ISR exists when one finishes,
+  CPU skips restore step and jumps directly to new ISR
+
+- Late Arrival:
+  If higher-priority IRQ arrives during stacking,
+  CPU switches to it immediately (before entering lower-priority ISR)
+
+6. Interview Pointers
+---------------------
+Q: What is automatically saved on stack?
+   R0-R3, R12, LR, PC, xPSR
+
+Q: Why does LR contain EXC_RETURN during ISR?
+   Special magic value, tells CPU whether to restore using MSP/PSP, 
+   return to Thread/Handler mode, etc.
+
+Q: Who manages interrupt priority?
+   NVIC resolves which pending IRQ is highest, 
+   delivers it to CPU with vector address
+
+Q: Why is automatic stacking useful?
+   Programmer does not need assembly prologue/epilogue 
+   to save/restore state → faster response
