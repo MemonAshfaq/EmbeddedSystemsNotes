@@ -1,0 +1,119 @@
+=========================================
+Macros in C (Embedded Focus)
+=========================================
+
+WHAT ARE MACROS?
+----------------
+- Preprocessor directives (handled before compilation)
+- #define substitutes text directly
+- No type checking
+- Can define constants, functions, conditional code
+
+-----------------------------------------
+TYPES OF MACROS
+-----------------------------------------
+
+1) Object-like Macros
+---------------------
+#define PI 3.14159
+#define BUFFER_SIZE 256
+
+Usage: const replacements, compile-time constants
+
+2) Function-like Macros
+-----------------------
+#define SQR(x) ((x) * (x))
+
+int a = SQR(5);   // expands to (5 * 5)
+
+⚠️ Problem with side effects:
+int b = SQR(a++); // expands to (a++ * a++), UB (increment twice)
+
+3) Conditional Macros
+---------------------
+#ifdef DEBUG
+  #define LOG(x) printf("Debug: %s\n", x)
+#else
+  #define LOG(x) 
+#endif
+
+Usage: enable/disable code for debug vs release builds
+
+4) Multi-line Macros
+--------------------
+#define MIN(a,b)   \
+   ((a) < (b) ? (a) : (b))
+
+-----------------------------------------
+MACROS vs CONST / INLINE
+-----------------------------------------
+- const → type-checked, lives in memory (or flash in embedded)
+- inline function → type-checked, safe, avoids double eval
+- macros → no type checking, pure text substitution
+
+Best practice:
+- Use const or inline whenever possible
+- Use macros only for compile-time conditions or special tricks
+
+-----------------------------------------
+USE CASES IN EMBEDDED
+-----------------------------------------
+- Register addresses / bit masks
+  #define GPIOA_BASE 0x40020000
+  #define GPIOA_MODER (*(volatile uint32_t*)(GPIOA_BASE + 0x00))
+
+- Compile-time constants (array sizes, buffer lengths)
+
+- Debug logging enable/disable
+
+- Conditional compilation for multiple platforms
+  #ifdef STM32
+     #define LED_PIN 13
+  #elif defined(AVR)
+     #define LED_PIN 5
+  #endif
+
+-----------------------------------------
+DANGERS / TRAPS
+-----------------------------------------
+- No type checking
+- Multiple evaluation in function-like macros
+- May lead to hidden bugs if used with ++ or --
+- Harder to debug (debugger shows expanded code, not macro)
+- Can pollute global namespace
+
+-----------------------------------------
+SAFE MACRO PRACTICES
+-----------------------------------------
+- Always wrap macro params in parentheses:
+  #define SQR(x) ((x) * (x))
+
+- Use U/L suffix for constants:
+  #define MAX_COUNT 100U
+
+- Prefer enums for groups of constants
+
+- Prefer inline functions over function-like macros
+
+- Use ALL_CAPS naming for macros to distinguish
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+- SQR(a++) → double increment issue
+- Difference between macro constant vs const variable
+- Why macros are dangerous for type safety
+- Why prefer inline/const over macros
+- Macros in headers → global scope pollution
+- Preprocessor runs before compiler → text substitution only
+
+-----------------------------------------
+QUICK RECALL
+-----------------------------------------
+- Macro = preprocessor text substitution
+- Object-like = constants
+- Function-like = inline expansion (but unsafe with ++/--)
+- Conditional macros = compile-time switches
+- Use cases: registers, cross-platform code, debug
+- Prefer const/inline → safer, type-checked
+- Watch out for multiple evaluation & no type safety
