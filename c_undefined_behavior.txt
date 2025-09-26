@@ -1,0 +1,108 @@
+=========================================
+Undefined Behavior & Overflow (C)
+=========================================
+
+WHAT IS UNDEFINED BEHAVIOR (UB)?
+--------------------------------
+- Any code where the C standard does not define the result
+- Compiler is free to:
+  * Optimize in unexpected ways
+  * Produce different results on different systems
+  * Crash, corrupt memory, or seem to "work"
+
+Why dangerous?
+--------------
+- In embedded: UB may cause subtle bugs, unsafe optimizations
+- Compiler may remove/alter code if UB is possible
+
+-----------------------------------------
+COMMON SOURCES OF UB
+-----------------------------------------
+
+1) Signed Integer Overflow
+--------------------------
+int x = INT_MAX;
+x = x + 1;   // UB (wraparound not guaranteed)
+- C standard: signed overflow = UB
+- Most compilers → wraps, but not portable
+
+Unsigned Overflow
+-----------------
+unsigned int y = UINT_MAX;
+y = y + 1;   // Defined (wraps around modulo 2^n)
+
+2) Shift Operations
+-------------------
+- Shifting by >= width of type = UB
+  int x = 1 << 32;   // UB if int is 32-bit
+- Shifting negative numbers = UB
+
+3) Uninitialized Variables
+--------------------------
+int x;
+printf("%d", x); // UB (value indeterminate)
+
+4) Sequence Point Violations
+----------------------------
+i = i++ + ++i;   // UB (order of evaluation not defined)
+x = ++i + ++i;   // UB
+
+5) Pointer Arithmetic Out of Bounds
+-----------------------------------
+int arr[3];
+int *p = arr + 5;   // UB if dereferenced
+- You may go "one past the end" (arr+3) but cannot deref
+
+6) Dereferencing NULL / Dangling Pointers
+-----------------------------------------
+int *p = NULL;
+*p = 5;    // UB
+// Dangling pointer = freed/returned local
+
+7) Aliasing Rule Violations
+---------------------------
+int *p; float *f;
+*(float*)p = 3.14;  // UB (strict aliasing rule)
+- Accessing memory through incompatible pointer types
+
+8) Modifying String Literals
+----------------------------
+char *s = "hello";
+s[0] = 'H';   // UB (string literals in .rodata, read-only)
+
+9) Buffer Overflows
+-------------------
+char buf[5];
+buf[5] = 'a';  // UB (index out of bounds)
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+- Signed overflow = UB, unsigned overflow = defined wrap
+- Shifting by >= width or negative = UB
+- Only one-past-the-end pointer is valid, not dereferenceable
+- i = i++ + i; → UB due to multiple unsequenced modifications
+- const char *s = "hi"; modifying it → UB
+- memcpy with overlapping regions = UB (use memmove)
+- Division by zero = UB
+
+-----------------------------------------
+EMBEDDED SYSTEM RELEVANCE
+-----------------------------------------
+- Compilers may optimize away "while(flag==0);" if flag not volatile
+- Signed overflow assumptions may break algorithms
+- UB in ISR/shared variable access if not volatile/atomic
+- Buffer overflows → memory corruption, watchdog resets
+- Bit shifts common in register programming → must ensure valid ranges
+
+-----------------------------------------
+QUICK RECALL
+-----------------------------------------
+- UB = compiler free to do anything
+- Signed overflow → UB
+- Unsigned overflow → wraps
+- Shift by >= width or negative → UB
+- Dereferencing NULL/dangling → UB
+- Access out of array bounds → UB
+- Multiple writes to same var without sequencing → UB
+- Modifying string literal → UB
