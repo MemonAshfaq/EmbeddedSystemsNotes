@@ -1,0 +1,150 @@
+===========================================================
+RTOS Topic: MEMORY MANAGEMENT
+===========================================================
+
+Why memory management matters in RTOS:
+--------------------------------------
+- RTOS runs on resource-constrained MCUs (KBs of RAM/Flash).
+- Each task needs its own stack.
+- RTOS kernel itself needs RAM for queues, semaphores, timers, etc.
+- Wrong memory use → crashes, fragmentation, missed deadlines.
+
+-----------------------------------------------------------
+Static vs Dynamic Allocation
+-----------------------------------------------------------
+1. Static allocation:
+   - Memory is reserved at compile time.
+   - Predictable, no fragmentation.
+   - Safer for critical systems (IEC 61508, DO-178).
+   - Example: using arrays or static buffers.
+
+2. Dynamic allocation:
+   - Memory taken from heap at runtime.
+   - Flexible, but risk of fragmentation.
+   - May fail if heap exhausted.
+
+Best practice in embedded RTOS:
+- Prefer static allocation.
+- Use dynamic only for non-critical features.
+
+===========================================================
+FreeRTOS Heap Management Schemes
+===========================================================
+
+FreeRTOS does not rely on the compiler’s malloc/free directly.
+Instead, it provides 5 portable heap management schemes:
+(heap_1.c to heap_5.c).
+You pick ONE of them at build time.
+
+-----------------------------------------------------------
+heap_1
+-----------------------------------------------------------
+- Simplest scheme.
+- Supports only malloc (pvPortMalloc).
+- No free (vPortFree is not available).
+- Memory is allocated, never released.
+- No fragmentation possible.
+- Use when:
+   * All tasks/objects created once at startup.
+   * Memory requirements are fixed.
+
+Pros: Predictable, no fragmentation, smallest code.
+Cons: Cannot free memory.
+
+-----------------------------------------------------------
+heap_2
+-----------------------------------------------------------
+- Supports malloc and free.
+- Uses a simple free list.
+- Can fragment over time if many alloc/free calls.
+- Suitable for small systems where freeing is rare.
+
+Pros: Can free memory.
+Cons: Fragmentation possible.
+
+-----------------------------------------------------------
+heap_3
+-----------------------------------------------------------
+- Thin wrapper around standard library malloc/free.
+- Behavior depends on C library implementation.
+- May bring unpredictability, longer execution times.
+- Rarely used in critical embedded systems.
+
+Pros: Easy, relies on standard malloc/free.
+Cons: Not deterministic, libc overhead.
+
+-----------------------------------------------------------
+heap_4
+-----------------------------------------------------------
+- Like heap_2 but improved.
+- Performs block coalescing:
+   * When adjacent free blocks exist, merges them.
+   * Reduces fragmentation significantly.
+- Most commonly used scheme in real-world projects.
+
+Pros: Can malloc/free safely, fragmentation minimized.
+Cons: Slightly more code size than heap_2.
+
+-----------------------------------------------------------
+heap_5
+-----------------------------------------------------------
+- Extension of heap_4.
+- Allows multiple, non-contiguous memory regions.
+- Useful when memory is split across banks (common in MCUs).
+- Still supports coalescing.
+
+Pros: Flexible, can use all available RAM banks.
+Cons: Slightly more complex.
+
+-----------------------------------------------------------
+Quick Summary Table
+-----------------------------------------------------------
+Heap   Supports Free?   Fragmentation   Use Case
+------------------------------------------------
+heap_1     No              None         Fixed memory, startup-only alloc
+heap_2     Yes             Possible     Small systems, occasional free
+heap_3     Yes             libc-based   Quick & dirty, not deterministic
+heap_4     Yes             Minimized    Most common choice
+heap_5     Yes             Minimized    Multi-bank memory systems
+
+===========================================================
+
+-----------------------------------------------------------
+Per-task Stack
+-----------------------------------------------------------
+- Each task has its own stack.
+- Size must be chosen carefully:
+   * Too small → stack overflow, crashes.
+   * Too big → wastes precious RAM.
+- Use configCHECK_FOR_STACK_OVERFLOW to enable detection.
+
+-----------------------------------------------------------
+Stack Overflow Detection
+-----------------------------------------------------------
+Methods:
+- Guard bytes / canaries: RTOS fills stack with pattern (e.g., 0xA5).
+  If pattern overwritten → overflow detected.
+- Memory Protection Unit (MPU): traps illegal stack access.
+- Example in FreeRTOS: vApplicationStackOverflowHook() callback.
+
+-----------------------------------------------------------
+FreeRTOS Example: Static vs Dynamic Task Creation
+-----------------------------------------------------------
+
+// Dynamic allocation (heap)
+xTaskCreate(vTask, "DynTask", 1000, NULL, 2, NULL);
+
+// Static allocation (user-provided stack + TCB)
+StaticTask_t xTaskBuffer;
+StackType_t xStack[1000];
+xTaskCreateStatic(vTask, "StaticTask", 1000, NULL, 2, xStack, &xTaskBuffer);
+
+-----------------------------------------------------------
+Key Points
+-----------------------------------------------------------
+- Static allocation = predictable, safe, recommended.
+- Dynamic allocation = flexible, but risky (fragmentation).
+- Each task = separate stack, must size carefully.
+- Use overflow hooks and guard bytes to catch bugs.
+- Know which FreeRTOS heap scheme your project uses.
+===========================================================
