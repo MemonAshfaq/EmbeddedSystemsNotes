@@ -1,0 +1,34 @@
+===========================================================
+RTOS vs GPOS
+===========================================================
+
+RTOS (Real-Time Operating System):
+- Designed for deterministic behavior (predictable response).
+- Focus = meeting deadlines.
+- Guarantees bounded interrupt & task switching latency.
+
+GPOS (General Purpose OS):
+- Designed for throughput, fairness, multitasking.
+- Focus = maximizing resource utilization (CPU, memory, I/O).
+- No strict guarantees on response time.
+
+Key Differences:
+1. Determinism:
+   - RTOS → bounded latency (hard limits).
+   - GPOS → best effort, unbounded delays possible.
+   
+2. Scheduling:
+   - RTOS → priority-based preemptive scheduling.
+   - GPOS → fairness, time-sharing, CFS (Linux).
+   
+3. Resources:
+   - RTOS → minimal footprint, runs on MCUs.
+   - GPOS → larger, runs on powerful CPUs.
+   
+4. Use cases:
+   - RTOS → automotive ECUs, avionics, medical devices, cameras.
+   - GPOS → desktops, servers, smartphones.
+
+Hard vs Soft Real-Time:
+- Hard RTOS: deadline miss = system failure (airbag ECU, pacemaker).
+- Soft RTOS: occasional miss tolerable (multimedia playback).
