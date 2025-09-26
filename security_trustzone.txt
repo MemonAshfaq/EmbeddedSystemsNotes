@@ -1,0 +1,85 @@
+====================================================
+ARM TRUSTZONE – DETAILED EXPLANATION
+====================================================
+
+What is TrustZone?
+----------------------------------------------------
+- Hardware-based security extension (ARMv8-A, ARMv7-A).
+- Splits the system into two execution environments:
+   • Secure World → trusted code, sensitive assets.
+   • Normal World → regular OS and apps.
+- Goal: isolate secrets and critical operations from potentially compromised OS/app.
+
+How It Works
+----------------------------------------------------
+1. CPU runs in one of two states: Secure or Non-secure.
+2. Secure Monitor Call (SMC) instruction switches between worlds.
+3. Memory, peripherals, interrupts can be tagged as Secure or Non-secure.
+4. Secure world has access to everything.
+   Normal world has access only to non-secure resources.
+
+TrustZone Components
+----------------------------------------------------
+1. **Secure World (Trusted Execution Environment – TEE)**
+   - Runs trusted firmware, crypto libraries, secure OS.
+   - Stores encryption keys, DRM assets, biometric data.
+   - Provides secure services to normal world via APIs.
+
+2. **Normal World**
+   - Runs standard OS (Linux, Android, RTOS).
+   - Executes apps, drivers, user code.
+   - Cannot directly access secure resources.
+
+3. **Secure Monitor**
+   - Tiny piece of code that handles switching between worlds.
+   - Ensures context is saved/restored securely.
+
+Memory & Peripheral Isolation
+----------------------------------------------------
+- TrustZone Address Space Controller (TZASC):
+   • Splits DRAM into secure and non-secure regions.
+- TrustZone Protection Controller (TZPC):
+   • Marks peripherals (GPIO, UART, etc.) as secure or non-secure.
+- Ensures Normal World code cannot access secure memory/peripherals.
+
+Use Cases
+----------------------------------------------------
+- Secure boot: ROM verifies first bootloader in Secure World.
+- Key storage: Secrets (AES keys, private keys) stored only in Secure World.
+- Mobile payments, DRM, biometric authentication.
+- IoT: Protect firmware updates and credentials.
+
+Example Flow: Secure Boot + TEE
+----------------------------------------------------
+1. Device powers on → starts in Secure World (ROM code).
+2. ROM verifies bootloader signature.
+3. Secure World OS (TEE) initializes.
+4. Normal World OS (Linux/Android) boots.
+5. When app needs secure service (e.g., decrypt file):
+   • Normal world app → TEE API → Secure World crypto function.
+
+Visualization
+----------------------------------------------------
+[ Secure World ]
+   - Trusted OS (TEE)
+   - Key storage
+   - Secure drivers
+   - Secure boot
+   - Crypto functions
+        |
+        | (via SMC call)
+        v
+[ Normal World ]
+   - Android/Linux
+   - Apps
+   - Device drivers
+
+----------------------------------------------------
+Summary
+----------------------------------------------------
+- TrustZone = hardware isolation between Secure and Normal World.
+- Secure World protects secrets, keys, and critical code.
+- Normal World runs user OS/apps with limited access.
+- Controlled via Secure Monitor + hardware controllers.
+- Widely used in smartphones, IoT, automotive, payment systems.
+====================================================
