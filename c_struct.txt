@@ -1,0 +1,145 @@
+=========================================
+Structs in C (Embedded Focus)
+=========================================
+
+STRUCT PADDING
+--------------
+- Compiler inserts padding to meet alignment rules
+- Each member placed at offset aligned to its type
+- Struct size rounded up to multiple of largest member’s alignment
+
+Example:
+--------
+struct A {
+    char  c;   // offset 0
+    int   i;   // offset 4 (3 bytes padding after c)
+    short s;   // offset 8
+}; 
+// size = 12 (not 7)
+
+STRUCT ALIGNMENT
+----------------
+- Struct alignment = alignment of largest member
+- Arrays of structs → may add end padding to align each element
+
+Example:
+--------
+struct B {
+    char c1;   // offset 0
+    char c2;   // offset 1
+    int  i;    // offset 4 (2 bytes padding after c2)
+};
+// size = 8, not 6
+
+CONTROL PADDING
+---------------
+1) Reorder members to reduce padding
+2) #pragma pack(1) or __attribute__((packed)) 
+   → disables padding (compiler-specific, risky)
+⚠️ Misaligned access may be slow or crash on some MCUs
+
+-----------------------------------------
+BIT-FIELDS
+-----------------------------------------
+- Syntax: unsigned int flag:1;
+- Compact storage of multiple flags in one word
+
+Example:
+--------
+struct Flags {
+    unsigned int a:1;
+    unsigned int b:3;
+    unsigned int c:4;
+};
+// Fits into one int (but layout is compiler-dependent)
+
+Use cases:
+----------
+- Embedded: register mapping, compact flags
+
+Limitations:
+------------
+- Implementation-defined bit order (endianness issues)
+- Cannot take address of bit-field
+- Access may be read-modify-write (not atomic)
+- Cross-platform portability is poor
+
+-----------------------------------------
+STRUCT SERIALIZATION / DESERIALIZATION
+-----------------------------------------
+
+WHAT IS SERIALIZATION?
+- Converting struct → byte stream (for network, file, flash)
+WHAT IS DESERIALIZATION?
+- Reconstructing struct from byte stream
+
+WHY NOT DIRECT memcpy?
+- Padding may differ by compiler
+- Endianness differences
+- Alignment rules vary → unsafe cross-platform
+
+Example struct:
+---------------
+struct Packet {
+    uint16_t id;
+    uint32_t value;
+    uint8_t  flag;
+};
+// sizeof(Packet) may be > 7 due to padding (e.g., 12)
+
+SAFE SERIALIZATION
+------------------
+void serialize(const struct Packet *p, uint8_t *buf) {
+    buf[0] = (p->id >> 8) & 0xFF;
+    buf[1] = p->id & 0xFF;
+
+    buf[2] = (p->value >> 24) & 0xFF;
+    buf[3] = (p->value >> 16) & 0xFF;
+    buf[4] = (p->value >> 8) & 0xFF;
+    buf[5] = p->value & 0xFF;
+
+    buf[6] = p->flag;
+}
+
+SAFE DESERIALIZATION
+--------------------
+void deserialize(struct Packet *p, const uint8_t *buf) {
+    p->id = (buf[0] << 8) | buf[1];
+
+    p->value = ((uint32_t)buf[2] << 24) |
+               ((uint32_t)buf[3] << 16) |
+               ((uint32_t)buf[4] << 8)  |
+               (uint32_t)buf[5];
+
+    p->flag = buf[6];
+}
+
+ALTERNATIVES
+------------
+- htons/ntohs, htonl/ntohl (network byte order helpers)
+- Packed structs + memcpy (only safe if same compiler + arch + endian)
+- Protocol Buffers / CBOR / JSON (too heavy for small MCUs)
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+- sizeof(struct) ≥ sum of members → padding added
+- Alignment = largest member
+- Arrays of structs may add end padding
+- Packed structs save space but risk misaligned access
+- Bit-field order is compiler/endianness dependent
+- memcpy(struct) is NOT portable (padding + endian issues)
+- Network protocols always specify byte order (big endian)
+- Best practice → serialize manually, field by field
+
+-----------------------------------------
+QUICK RECALL
+-----------------------------------------
+- Padding = compiler adds bytes for alignment
+- Alignment = largest member dictates struct alignment
+- Optimize size by reordering members
+- Packed structs remove padding but may crash/slower
+- Bit-fields = compact but non-portable (avoid for registers)
+- Serialization = struct → byte array (manual safest)
+- Deserialization = byte array → struct
+- memcpy(struct) = unsafe across platforms
