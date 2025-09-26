@@ -1,0 +1,160 @@
+=========================================
+Safe C Practices (Embedded Focus)
+=========================================
+
+GOAL
+----
+- Prevent memory corruption, crashes, security issues
+- Write portable, predictable, and safe C code
+- Critical in embedded: small memory, real-time, safety-critical
+
+-----------------------------------------
+BUFFER OVERFLOW PREVENTION
+-----------------------------------------
+- Avoid unsafe functions: strcpy, strcat, sprintf, gets
+- Prefer bounded versions: strncpy, strncat, snprintf, fgets
+
+Example:
+--------
+char buf[10];
+strcpy(buf, "ThisIsTooLong");   // Unsafe → overflow!
+strncpy(buf, "Hello", sizeof(buf)-1);
+buf[sizeof(buf)-1] = '\0';      // Ensure null-termination
+
+- Always reserve 1 byte for '\0'
+- Validate input length before writing to buffer
+
+-----------------------------------------
+MEMCPY vs MEMMOVE
+-----------------------------------------
+- memcpy → UB if regions overlap
+- memmove → safe for overlap (uses temp buffer)
+
+Example:
+--------
+char buf[10] = "abcdef";
+memcpy(buf+2, buf, 4);   // UB
+memmove(buf+2, buf, 4);  // Safe
+
+-----------------------------------------
+INTEGER OVERFLOW IN SIZE CALCS
+-----------------------------------------
+- Watch malloc/array size calculations:
+  size_t n;
+  char *p = malloc(n * sizeof(struct Node));
+- If n * sizeof(Node) overflows → small buffer allocated → overflow
+
+Fix:
+if (n > SIZE_MAX / sizeof(struct Node)) error();
+char *p = malloc(n * sizeof(struct Node));
+
+-----------------------------------------
+STACK vs HEAP SAFETY
+-----------------------------------------
+STACK
+- Limited, small in embedded
+- Don’t allocate large arrays on stack
+- Recursion risky → may overflow stack
+- Overflow silently corrupts memory
+
+HEAP
+- Avoid malloc/free in firmware (fragmentation, nondeterministic)
+- Prefer static pools, fixed-size blocks
+
+-----------------------------------------
+STACK OVERFLOW: AVOIDANCE
+-----------------------------------------
+- Estimate stack usage per function (map file, compiler reports)
+- Avoid deep recursion in embedded
+- Use static/global arrays for large buffers
+- Assign sufficient stack per task in RTOS
+
+-----------------------------------------
+STACK OVERFLOW: DETECTION
+-----------------------------------------
+1) **Guard Bytes (Fill Pattern)**
+   - Fill end of stack with known value (e.g., 0xA5)
+   - Periodically scan → detect overwrite
+   - Used in RTOS (FreeRTOS high-water mark)
+
+2) **Stack Canary**
+   void foo() {
+       uint32_t canary = 0xDEADBEEF;
+       char buf[16];
+       ...
+       if (canary != 0xDEADBEEF) error_handler();
+   }
+   - If overflow modifies canary → detected before return
+   - GCC option: -fstack-protector
+
+3) **MPU (Memory Protection Unit)**
+   - Mark guard region below stack as “no access”
+   - If stack grows too far → HardFault
+   - Best protection on Cortex-M with MPU
+
+4) **RTOS Monitoring**
+   - Each task stack filled with pattern at init
+   - API checks unused “high water mark”
+   - Detects near-overflow during runtime
+
+-----------------------------------------
+STACK OVERFLOW: DEBUGGING
+-----------------------------------------
+- Symptoms:
+  * Random crashes, HardFaults, corrupted globals
+  * Task watchdog timeouts
+- Debugging methods:
+  * Enable stack overflow hook in RTOS (FreeRTOS: vApplicationStackOverflowHook)
+  * Use map file to calculate max stack needs
+  * Place watchpoints on guard bytes (if debugger supports)
+  * Enable compiler stack protector (-fstack-protector-strong)
+
+-----------------------------------------
+SAFE CODING HABITS (CHECKLIST)
+-----------------------------------------
+- Always initialize variables
+- Validate all inputs
+- Limit pointer arithmetic; check bounds
+- Avoid magic numbers → use constants/enums
+- Use const wherever possible
+- Minimize global vars; use static for internal linkage
+- MISRA-C / CERT-C guidelines for safety projects
+
+-----------------------------------------
+STRINGS: SAFE FUNCTIONS
+-----------------------------------------
+- Use snprintf() instead of sprintf()
+- Use strncat() instead of strcat()
+- Always null-terminate
+- Validate input length
+
+-----------------------------------------
+SECURE CODING PATTERNS
+-----------------------------------------
+- Never trust external input (UART, SPI, CAN, network)
+- Always check return values (malloc, read, etc.)
+- Disable dangerous library calls if not needed
+- Use watchdog + error handling
+- Protect shared vars in RTOS (mutex/disable IRQs)
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+- strcpy vs strncpy
+- memcpy vs memmove (overlap)
+- Signed vs unsigned overflow
+- Why malloc avoided in embedded
+- Volatile use for flags/regs
+- sprintf vs snprintf
+- Stack overflow detection (guard bytes, canaries, MPU, RTOS)
+
+-----------------------------------------
+QUICK RECALL
+-----------------------------------------
+- Avoid unsafe C functions → use bounded versions
+- memcpy = unsafe for overlap, memmove = safe
+- Check integer overflow in malloc/arrays
+- Stack small → avoid recursion & large locals
+- Heap nondeterministic → avoid in firmware
+- Detect stack overflow via guard bytes, canaries, MPU, RTOS
+- Always check inputs + return values
