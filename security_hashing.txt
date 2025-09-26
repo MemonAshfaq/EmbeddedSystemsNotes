@@ -1,0 +1,100 @@
+====================================================
+3. HASHING & INTEGRITY (SHA-256, DIGITAL SIGNATURES)
+====================================================
+
+HASHING BASICS
+----------------------------------------------------
+- Hash function: one-way, fixed-size output.
+- Input → variable length. Output → fixed length (e.g., 256 bits).
+- Properties:
+   • Deterministic: same input → same hash.
+   • Pre-image resistance: cannot get input from hash.
+   • Collision resistance: hard to find 2 inputs with same hash.
+   • Avalanche effect: small input change → large hash change.
+
+Common Hash Functions
+- MD5 (broken, insecure).
+- SHA-1 (deprecated).
+- SHA-2 family (SHA-224, SHA-256, SHA-384, SHA-512).
+- SHA-3 (Keccak-based, newer standard).
+
+SHA-256
+- Most widely used today.
+- 256-bit output (32 bytes).
+- Used in digital signatures, blockchain, secure boot.
+
+----------------------------------------------------
+HASHING USE CASES
+----------------------------------------------------
+1. Integrity Check
+   - Store known hash of file/firmware.
+   - Recompute hash later → compare.
+   - If mismatch → file altered.
+
+2. Password Storage
+   - Store hash, not plaintext password.
+   - Verify by hashing user input and comparing.
+
+3. Digital Signatures (with RSA/ECC)
+   - Data is hashed (SHA-256).
+   - Hash signed with sender’s PRIVATE key.
+   - Receiver verifies using sender’s PUBLIC key.
+
+4. Message Authentication
+   - HMAC (Hash-based Message Auth Code) → adds secret key to hash.
+
+----------------------------------------------------
+DIGITAL SIGNATURE PROCESS
+----------------------------------------------------
+Signing:
+1. Compute hash of message (SHA-256).
+2. Sign hash with PRIVATE key (RSA/ECC).
+3. Send message + signature.
+
+Verification:
+1. Receiver computes hash of received message.
+2. Decrypts signature using PUBLIC key → gets sender’s hash.
+3. Compare both hashes.
+4. If match → message is authentic and unchanged.
+
+----------------------------------------------------
+FW INTEGRITY EXAMPLE
+----------------------------------------------------
+- Firmware image → SHA-256 hash.
+- Vendor signs hash with PRIVATE key.
+- Device (secure bootloader):
+   • Computes SHA-256 of firmware.
+   • Verifies signature using PUBLIC key stored in ROM.
+- Ensures firmware is authentic + not tampered.
+
+----------------------------------------------------
+CODE SNIPPETS (Pseudo-C)
+----------------------------------------------------
+Compute Hash (SHA-256):
+-------------------------------------------
+uint8_t digest[32];
+sha256(data, len, digest);
+
+Verify Integrity:
+-------------------------------------------
+if (memcmp(digest, expected, 32) == 0) {
+    // OK: data intact
+} else {
+    // FAIL: data altered
+}
+
+Digital Signature Verification:
+-------------------------------------------
+hash = sha256(firmware, len);
+valid = rsa_verify(signature, hash, public_key);
+if (!valid) halt_boot();
+
+----------------------------------------------------
+SUMMARY
+----------------------------------------------------
+- Hash = one-way fingerprint of data.
+- SHA-256 = strong, standard hash today.
+- Integrity: compare stored vs computed hash.
+- Digital signatures = hash + private key sign + public key verify.
+- Used in secure boot, password protection, data integrity.
+====================================================
