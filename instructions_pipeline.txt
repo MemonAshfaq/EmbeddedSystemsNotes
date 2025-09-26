@@ -1,0 +1,61 @@
+==================================================
+Instruction Pipeline Basics
+==================================================
+
+1. Concept
+----------
+- Pipeline = overlapping stages of instruction execution
+- Improves throughput (1 instruction per cycle in ideal case)
+- Stages depend on CPU design
+
+2. Typical Stages (Cortex-M, 3-stage pipeline)
+----------------------------------------------
+- IF : Instruction Fetch (from memory)
+- ID : Instruction Decode (control signals, operands)
+- EX : Execute (ALU, memory access, writeback)
+
+3. Benefits
+-----------
+- Increases instruction throughput
+- Efficient CPU utilization
+- Enables higher clock frequencies
+
+4. Hazards
+----------
+- Data hazard
+  Instruction depends on result not ready yet
+  Solution: forwarding, pipeline stall
+
+- Control hazard
+  Branch/jump changes PC
+  Solution: branch prediction, flush pipeline
+
+- Structural hazard
+  Two instructions compete for same resource
+  Solution: separate buses, extra hardware
+
+5. Example (simplified)
+-----------------------
+Without pipeline:
+  Instr1: F D E
+  Instr2:       F D E
+  Instr3:             F D E
+  -> 9 cycles for 3 instructions
+
+With pipeline:
+  Cycle1: F
+  Cycle2: D F
+  Cycle3: E D F
+  Cycle4:   E D F
+  -> 5 cycles for 3 instructions
+
+6. Interview Pointers
+---------------------
+Q: What is pipeline hazard? Example?
+   - When next instruction cannot execute in next cycle due to dependency
+   - e.g., ADD followed by SUB using same register
+
+Q: How does Cortex-M reduce pipeline penalties?
+   - Uses branch speculation
+   - Prefetch buffer
+   - Simple 3-stage design to minimize stalls
