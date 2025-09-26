@@ -1,0 +1,63 @@
+===========================================================
+RTOS Inter-task Communication - Block 1: QUEUES
+===========================================================
+
+What is a Queue?
+----------------
+- A queue is a kernel-managed FIFO buffer.
+- Safest way to pass messages or data between tasks (or ISR → task).
+- Each message is copied into the queue (no shared memory issues).
+- Tasks can block when:
+    * Queue is FULL → sender waits.
+    * Queue is EMPTY → receiver waits.
+
+Why use Queues?
+---------------
+- Decouples producer and consumer tasks.
+- Avoids race conditions from global variables.
+- Built-in thread safety → no need for manual locks.
+
+FreeRTOS Queue Example
+----------------------
+Producer task sends integers, consumer task prints them.
+
+QueueHandle_t xQueue;
+
+void vProducer(void *pv) {
+    int val = 0;
+    for(;;) {
+        // Send val into queue, block if full
+        xQueueSend(xQueue, &val, portMAX_DELAY);
+        val++;
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+void vConsumer(void *pv) {
+    int rx;
+    for(;;) {
+        // Receive val from queue, block if empty
+        xQueueReceive(xQueue, &rx, portMAX_DELAY);
+        printf("Received %d\n", rx);
+    }
+}
+
+int main(void) {
+    // Create queue to hold 5 integers
+    xQueue = xQueueCreate(5, sizeof(int));
+
+    // Create producer and consumer tasks
+    xTaskCreate(vProducer, "Producer", 1000, NULL, 2, NULL);
+    xTaskCreate(vConsumer, "Consumer", 1000, NULL, 2, NULL);
+
+    vTaskStartScheduler();
+}
+
+Key Points
+----------
+- Queues are best for passing DATA.
+- Useful for task-to-task or ISR-to-task communication.
+- Tasks waiting on queue save CPU (block instead of polling).
+- Limitation: copying large data through queue is expensive → 
+  pass pointers instead.
+===========================================================
