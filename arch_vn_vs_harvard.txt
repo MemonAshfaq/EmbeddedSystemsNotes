@@ -1,0 +1,54 @@
+==================================================
+Von Neumann vs Harvard Architectures
+==================================================
+
+1. Von Neumann Architecture
+---------------------------
+- Single memory space for instructions + data
+- Single bus for address + data transfer
+- Fetch OR load/store can happen at a time (not both)
+- Simpler, cheaper design
+- Example: early PCs, simple microcontrollers
+- Limitation: "Von Neumann bottleneck"
+  CPU speed limited by single bus access
+
+2. Harvard Architecture
+-----------------------
+- Separate memory for instructions and data
+- Separate buses for instruction + data
+- CPU can fetch instruction + access data in same cycle
+- Higher throughput, better performance
+- More complex hardware, higher cost
+- Example: DSPs, ARM Cortex-M internal design
+
+3. Modified Harvard Architecture
+--------------------------------
+- Separate buses internally
+- Unified memory map for programmers
+- Instructions and data stored in same physical memory
+- CPU internally fetches using separate paths
+- Example: ARM Cortex-M (Flash for code, SRAM for data)
+
+4. Comparison Table
+-------------------
+Aspect           Von Neumann            Harvard
+----------------------------------------------------
+Memory           Single shared          Separate (Instr, Data)
+Bus              One common             Two (Instr + Data)
+Performance      Lower                  Higher
+Cost             Cheaper                More expensive
+Usage            General CPUs           DSPs, MCUs, ARM cores
+
+5. Interview Pointers
+---------------------
+Q: Why Von Neumann bottleneck?
+   - CPU + memory share same bus, limits throughput.
+
+Q: Why does Cortex-M use modified Harvard?
+   - Programmer sees single memory map
+   - Internally uses separate instruction/data buses
+   - Gains performance while keeping programming simple
+
+Q: Real-world example?
+   - Von Neumann: x86 PCs
+   - Harvard: ARM Cortex-M (modified), TI DSPs
