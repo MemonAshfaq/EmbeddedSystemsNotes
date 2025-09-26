@@ -1,0 +1,91 @@
+=========================================
+Endianness in C (Embedded Focus)
+=========================================
+
+WHAT IS ENDIANNESS?
+-------------------
+- Defines how multi-byte data (int, short, long) are stored in memory.
+
+Little Endian (LE)
+- Least Significant Byte (LSB) stored at lowest memory address
+- Example: 0x12345678 → stored as 78 56 34 12
+
+Big Endian (BE)
+- Most Significant Byte (MSB) stored at lowest memory address
+- Example: 0x12345678 → stored as 12 34 56 78
+
+Why it matters?
+---------------
+- Different CPUs use different endian:
+  * ARM Cortex-M, x86 → Little Endian
+  * Some network protocols → Big Endian ("Network Byte Order")
+- When sharing data between devices → must agree on endian
+
+-----------------------------------------
+EXAMPLE WITH INT
+-----------------------------------------
+uint32_t x = 0x12345678;
+uint8_t *p = (uint8_t*)&x;
+
+Little Endian:
+p[0]=0x78, p[1]=0x56, p[2]=0x34, p[3]=0x12
+
+Big Endian:
+p[0]=0x12, p[1]=0x34, p[2]=0x56, p[3]=0x78
+
+-----------------------------------------
+ENDIANNESS + STRUCTS
+-----------------------------------------
+struct Packet {
+    uint16_t id;     // 2 bytes
+    uint32_t value;  // 4 bytes
+    uint8_t  flag;   // 1 byte
+};
+// sizeof(Packet) may be padded (e.g., 12)
+
+If we memcpy() this struct into a buffer:
+- On LE machine:
+  id=0x1234 → stored as 34 12
+  value=0xAABBCCDD → stored as DD CC BB AA
+- On BE machine:
+  id=0x1234 → stored as 12 34
+  value=0xAABBCCDD → stored as AA BB CC DD
+
+So the SAME struct looks different in memory depending on CPU endian!
+
+-----------------------------------------
+HOW TO HANDLE SAFELY
+-----------------------------------------
+1) Always define serialization byte order
+   - Network protocols → Big Endian (MSB first)
+   - Example: use htons(), ntohs(), htonl(), ntohl()
+
+2) Serialize manually field by field
+   void serialize(const struct Packet *p, uint8_t *buf) {
+       buf[0] = (p->id >> 8) & 0xFF;  // MSB first
+       buf[1] = p->id & 0xFF;
+       ...
+   }
+
+3) Avoid memcpy(struct) across systems → non-portable
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+- Padding + Endian = very dangerous combo
+  * Even if struct layout matches, bytes inside each field may differ
+- Bit-fields + Endian = unpredictable
+  * Compiler decides LSB/MSB ordering
+  * Never use bit-fields for protocol definition
+- const char *s = "AB"; 
+  * Stored in .rodata
+  * Endianness affects multi-byte ints, not individual chars
+
+-----------------------------------------
+QUICK RECALL
+-----------------------------------------
+- LE = LSB first (x86, ARM Cortex-M)
+- BE = MSB first (network protocols)
+- Structs in memory depend on endian + padding
+- memcpy(struct) → unsafe across endian boundaries
+- Safe serialization = always manual, define byte order
