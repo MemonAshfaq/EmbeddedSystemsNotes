@@ -1,0 +1,47 @@
+===========================================================
+Scheduling Algorithms in RTOS
+===========================================================
+
+1. Fixed Priority Preemptive (most common, e.g. FreeRTOS):
+- Each task has static priority.
+- Highest READY priority runs.
+- Deterministic, simple, predictable.
+
+2. Round Robin (time-slicing):
+- Tasks with same priority share CPU in time slices.
+- Useful for fairness between equal tasks.
+
+3. Rate Monotonic Scheduling (RMS):
+- Static priority assignment based on period.
+- Shorter period task = higher priority.
+- Proven optimal for fixed priority periodic tasks (under 70% CPU load).
+
+4. Earliest Deadline First (EDF):
+- Dynamic priority → task with closest deadline runs first.
+- Optimal in theory, but more complex.
+
+-----------------------------------------------------------
+FreeRTOS Example: Round Robin Scheduling
+-----------------------------------------------------------
+
+// Create two tasks with SAME priority → RTOS will time-slice them
+void TaskA(void *pv) {
+    for(;;) {
+        printf("Task A running\n");
+        vTaskDelay(1);  // yield after work
+    }
+}
+
+void TaskB(void *pv) {
+    for(;;) {
+        printf("Task B running\n");
+        vTaskDelay(1);  // yield after work
+    }
+}
+
+int main(void) {
+    xTaskCreate(TaskA, "A", 1000, NULL, 1, NULL);
+    xTaskCreate(TaskB, "B", 1000, NULL, 1, NULL);
+    vTaskStartScheduler();
+    for(;;);
+}
