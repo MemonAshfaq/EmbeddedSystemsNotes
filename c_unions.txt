@@ -1,0 +1,120 @@
+=========================================
+Unions in C (Embedded Focus)
+=========================================
+
+WHAT IS A UNION?
+----------------
+- Like a struct, but all members share the SAME memory
+- Size of union = size of largest member (plus possible alignment padding)
+- Only ONE member can hold a valid value at a time
+
+Example:
+--------
+union U {
+    int   i;   // 4 bytes
+    char  c;   // 1 byte
+    float f;   // 4 bytes
+};
+// size = 4 (largest member), not 9
+
+USAGE
+-----
+- Memory saving when different values never used at same time
+- Type punning (reinterpret same memory in different ways)
+- Common in embedded for:
+  * Protocol parsing (raw bytes ↔ fields)
+  * Register overlays
+  * Hardware driver data packets
+
+-----------------------------------------
+UNION vs STRUCT
+-----------------------------------------
+struct S { int i; char c; };
+// struct size = sum of members + padding
+
+union U { int i; char c; };
+// union size = max(member sizes) + padding
+
+struct → each member has separate memory
+union  → all members overlap in same memory
+
+-----------------------------------------
+EXAMPLE – TYPE PUNNING
+-----------------------------------------
+union Data {
+    uint32_t value;
+    uint8_t  bytes[4];
+};
+
+union Data d;
+d.value = 0x12345678;
+
+On little endian:
+d.bytes[0] = 0x78
+d.bytes[1] = 0x56
+d.bytes[2] = 0x34
+d.bytes[3] = 0x12
+
+On big endian:
+d.bytes[0] = 0x12
+d.bytes[1] = 0x34
+d.bytes[2] = 0x56
+d.bytes[3] = 0x78
+
+⚠️ Endianness matters when using unions for type punning
+
+-----------------------------------------
+EXAMPLE – PROTOCOL PARSING
+-----------------------------------------
+union Frame {
+    uint32_t raw;
+    struct {
+        uint8_t cmd;
+        uint8_t len;
+        uint16_t crc;
+    } fields;
+};
+
+struct Frame f;
+f.raw = 0x01020304;
+// Now f.fields.cmd = ?, depends on endianness + padding
+⚠️ Not portable – better to use shifts/masks
+
+-----------------------------------------
+EMBEDDED USE CASE – REGISTER ACCESS
+-----------------------------------------
+typedef union {
+    uint32_t all;
+    struct {
+        uint32_t enable : 1;
+        uint32_t mode   : 3;
+        uint32_t res    : 28;
+    } bits;
+} CTRL_REG;
+
+CTRL_REG *reg = (CTRL_REG*)0x40000000;
+reg->bits.enable = 1;   // Set bit
+reg->bits.mode = 3;     // Set mode
+// But still can access reg->all for full register
+
+-----------------------------------------
+INTERVIEW TRAPS
+-----------------------------------------
+- Only one member valid at a time → reading wrong member = UB
+- Endianness + alignment affect layout
+- Bit-field order in union = compiler-defined
+- Not portable for network protocols → use masks/shifts
+- Safer to use unions for low-level HW register overlays (with volatile)
+
+-----------------------------------------
+QUICK RECALL
+-----------------------------------------
+- Union = shared memory for all members
+- Size = largest member (aligned)
+- struct → independent members, union → overlapping members
+- Type punning → endian-dependent
+- Common embedded uses:
+  * Register overlays
+  * Raw buffer ↔ typed fields
+  * Memory saving
+- Risks → UB if reading wrong member, portability issues
