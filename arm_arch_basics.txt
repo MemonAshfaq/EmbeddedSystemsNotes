@@ -1,0 +1,91 @@
+==================================================
+ARM Cortex Basics (Registers, Modes, Exceptions)
+==================================================
+
+1. Registers
+------------
+- General Purpose (R0–R12)
+  R0–R3 : argument passing, scratch
+  R4–R11: callee-saved (preserved across calls)
+  R12   : intra-procedure scratch (IP)
+
+- Special Registers
+  R13 (SP): Stack Pointer
+  R14 (LR): Link Register, stores return address
+  R15 (PC): Program Counter
+  xPSR    : Program Status Register (flags + control)
+
+- Flags in xPSR
+  N = Negative
+  Z = Zero
+  C = Carry
+  V = Overflow
+  Thumb state, interrupt status
+
+- Banked registers (in Cortex-A/R)
+  Each mode can have its own SP, LR
+  Cortex-M: single SP (with MSP/PSP option)
+
+--------------------------------------------------
+
+2. Modes
+--------
+- Cortex-M (microcontrollers)
+  Thread Mode : normal application code
+  Handler Mode: exception/interrupt service
+
+- Stack Pointers
+  MSP = Main Stack Pointer (default, exceptions)
+  PSP = Process Stack Pointer (applications)
+
+- Cortex-A/R
+  Multiple modes (User, FIQ, IRQ, Supervisor, Abort, Undefined, System)
+  Used for OS privilege separation
+
+--------------------------------------------------
+
+3. Exceptions
+-------------
+- Triggered by reset, interrupts, or faults
+- Cortex-M Exception Types:
+  Reset        : highest priority
+  NMI          : non-maskable, cannot be disabled
+  HardFault    : severe errors
+  MemManage    : memory protection fault
+  BusFault     : bus access error
+  UsageFault   : illegal instruction, divide by zero
+  SysTick      : system timer interrupt
+  External IRQs: from peripherals (via NVIC)
+
+- Vector Table
+  Located at address 0x00000000 (can be relocated)
+  Entry 0: Initial Stack Pointer
+  Entry 1: Reset_Handler
+  Entry 2: NMI_Handler
+  Entry 3: HardFault_Handler
+  ...
+
+  Example:
+  0x00000000 : Initial SP value
+  0x00000004 : Reset_Handler
+  0x00000008 : NMI_Handler
+  0x0000000C : HardFault_Handler
+  ...
+
+--------------------------------------------------
+
+4. Interview Pointers
+----------------------
+Q: What happens on function call?
+   - LR stores return address
+   - R0–R3 hold arguments
+   - Extra args saved on stack
+
+Q: MSP vs PSP?
+   - MSP: used by exception handlers
+   - PSP: used by application threads
+
+Q: How does Cortex-M handle exceptions?
+   - NVIC automatically pushes R0–R3, R12, LR, PC, xPSR onto stack
+   - ISR executes
+   - On return, these are popped back automatically
