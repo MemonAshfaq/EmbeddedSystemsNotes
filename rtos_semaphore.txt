@@ -1,0 +1,67 @@
+===========================================================
+RTOS Inter-task Communication - Block 2: SEMAPHORES
+===========================================================
+
+What is a Semaphore?
+--------------------
+- A semaphore is a synchronization tool, not for data transfer.
+- Tasks can "take" (wait) and "give" (signal) the semaphore.
+- When a task takes it, the count decreases.
+- If count is 0, the task blocks until another task/ISR gives it.
+
+Types of Semaphores
+-------------------
+1. Binary Semaphore:
+   - Acts like a flag (0 or 1).
+   - Commonly used for ISR → Task signaling.
+   - Task blocks until ISR signals.
+
+2. Counting Semaphore:
+   - Keeps a count of available resources.
+   - Example: managing a pool of N identical devices.
+   - Each take reduces count, each give increases count.
+
+Why use Semaphores?
+-------------------
+- Wake a task when an external event occurs.
+- Control access to limited resources.
+- Avoid busy waiting → CPU efficient.
+
+FreeRTOS Example: Binary Semaphore (ISR → Task)
+------------------------------------------------
+
+SemaphoreHandle_t xBinSem;
+
+void vTask(void *pv) {
+    for(;;) {
+        // Wait for semaphore to be given
+        xSemaphoreTake(xBinSem, portMAX_DELAY);
+        printf("Event received! Task running...\n");
+    }
+}
+
+// Simulated interrupt service routine
+void vISR_Handler(void) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    // Give semaphore from ISR
+    xSemaphoreGiveFromISR(xBinSem, &xHigherPriorityTaskWoken);
+
+    // Force context switch if needed
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+int main(void) {
+    xBinSem = xSemaphoreCreateBinary();
+
+    xTaskCreate(vTask, "Task", 1000, NULL, 2, NULL);
+    vTaskStartScheduler();
+}
+
+Key Points
+----------
+- Binary semaphore is best for EVENT signaling.
+- Counting semaphore is best for managing RESOURCE pools.
+- Unlike a mutex, semaphores do NOT provide priority inheritance.
+- Use Mutex when protecting critical sections.
+===========================================================
